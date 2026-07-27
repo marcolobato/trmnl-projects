@@ -12,6 +12,10 @@
 
 import express from "express";
 
+// Layouts, CSS, and date formatting are shared with worker.js so the two
+// can never drift apart. See markup.js.
+import { getToday, buildMarkupResponse } from "./markup.js";
+
 const app = express();
 const PORT = 3000;
 
@@ -78,30 +82,6 @@ async function getRandomArtwork() {
 
   // If we somehow struck out every time, return null so the page can say so.
   return null;
-}
-
-// ── Step 2b: today's date, for the calendar corner ─────────────────────────
-//
-// `new Date()` gives us the moment this function runs. `toLocaleDateString`
-// turns that raw timestamp into words a human reads.
-//
-// We return TWO separate strings rather than one, so the design can style the
-// weekday and the date differently (bigger, bolder, stacked).
-//
-// "en-US" gives month-before-day — "July 27, 2026". Swap it for "en-GB" if you
-// ever prefer "27 July 2026"; nothing else has to change.
-
-function getToday() {
-  const now = new Date();
-
-  return {
-    weekday: now.toLocaleDateString("en-US", { weekday: "long" }),
-    date: now.toLocaleDateString("en-US", {
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-    }),
-  };
 }
 
 // ── Step 3: build the HTML page for the e-ink screen ───────────────────────
@@ -311,219 +291,17 @@ app.get("/data", async (req, res) => {
 
 // ── The TRMNL markup contract ──────────────────────────────────────────────
 //
-// This is what the TRMNL previewer actually asks for. It sends a POST here and
-// expects JSON containing FOUR pieces of markup — one per layout — plus an
-// optional block of shared CSS.
+// The previewer sends a POST here and expects JSON with FOUR pieces of markup
+// (one per layout) plus optional shared CSS.
 //
-// The four layouts are the different amounts of screen your plugin might get:
-//
-//   full             the whole 800x480 screen, your plugin alone
-//   half_horizontal  a wide, short strip (sharing top and bottom)
-//   half_vertical    a tall, narrow column (sharing left and right)
-//   quadrant         a small box, one of four plugins on screen
-//
-// So you don't design one layout and hope. You design all four, deciding what
-// gets sacrificed as the space shrinks.
-
-// Titles from The Met can contain characters that would break our HTML — the
-// ampersand in "Arms & Armor", for instance. This swaps them for safe
-// equivalents so the markup stays valid whatever the API hands us.
-function escapeHtml(text) {
-  return String(text)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
-
-// Only OUR styles go here. The previewer loads TRMNL's framework CSS itself,
-// so `view`, `layout`, and `title_bar` already look right — we don't restyle
-// them, we just describe the bits the framework has no opinion about.
-const SHARED_STYLES = `<style>
-  .art {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex: 1;             /* take whatever space the tombstone doesn't need */
-    align-self: stretch; /* fill the cross axis, so the img's 100% has a real
-                            height to measure against — without this, a row
-                            layout leaves the height undefined and the image
-                            renders full size and gets cropped */
-    min-width: 0;        /* flex items refuse to shrink below their content
-                            unless you say so; this lets a wide painting
-                            narrow instead of overflowing */
-    min-height: 0;
-    overflow: hidden;
-  }
-
-  .art img {
-    /* Filling the box and letting object-fit do the work scales the painting
-       down to fit entirely, in both row and column layouts. Never cropped. */
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-
-    /* Gentler than before. Dithering now does the tonal work, and a hard
-       contrast push crushed dark paintings to solid black BEFORE the
-       dithering ever got to see them. */
-    filter: grayscale(1) brightness(1.1) contrast(1.15);
-  }
-
-  /* The "tombstone" — museum term for the label beside a work.
-     Title, then artist and date, grouped as one unit near the painting. */
-  .tombstone {
-    text-align: center;
-    padding: 6px 12px 0;
-    min-width: 0; /* long titles shrink rather than shoving the painting out */
-  }
-
-  /* Italic title follows museum convention for titles of works.
-     Size and line budget are set per layout below — see the next block. */
-  .tombstone__title {
-    font-style: italic;
-    line-height: 1.2;
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-
-  .tombstone__credit {
-    padding-top: 2px;
-  }
-
-  /* ── Per-layout rules ────────────────────────────────────────────────
-     One global rule can't work. The same title has very different room in
-     a full screen than in a half-width column, so each layout gets its own
-     type size and its own line budget before truncating. */
-
-  /* Full: most room, largest type. Two lines keeps the painting dominant. */
-  .view--full .tombstone__title  { font-size: 20px; -webkit-line-clamp: 2; }
-  .view--full .tombstone__credit { font-size: 14px; }
-
-  /* Half horizontal: TWO COLUMNS, always.
-     The painting keeps 45% of the width no matter how long the title runs.
-     Without this the label expands unopposed and the image vanishes. */
-  .view--half_horizontal .art {
-    flex: 0 0 45%;
-  }
-  .view--half_horizontal .tombstone {
-    flex: 1 1 auto;
-    text-align: left; /* reads better in a column than centred */
-    padding: 0 12px;
-  }
-  .view--half_horizontal .tombstone__title  { font-size: 15px; -webkit-line-clamp: 3; }
-  .view--half_horizontal .tombstone__credit { font-size: 12px; }
-
-  /* Half vertical: narrow but tall. Smaller type, two lines. */
-  .view--half_vertical .tombstone__title { font-size: 16px; -webkit-line-clamp: 2; }
-</style>`;
-
-// One builder for all four layouts, because they differ by CONTENT, not by
-// structure. `showArtist` is the only switch: the artist credit is the first
-// thing to cut when space runs short — the painting and the date are the job.
-//
-// Note where the date lands: `instance` is the title bar's right-hand slot,
-// which is exactly the bottom-right position you asked for, handed to us by
-// the framework instead of hand-positioned.
-function buildView(variant, art, today, { showTitle, showCredit, direction }) {
-  // The bottom bar is now the calendar, and it is identical everywhere. The
-  // date is the one element that never gets cut, whatever the layout.
-  //
-  // It only holds one line — the framework fixes it at 40px (32px in mashups)
-  // with three horizontal slots — which is exactly why the artwork credit
-  // had to move out of it.
-  const titleBar = `<div class="title_bar">
-    <span class="title">${escapeHtml(today.weekday)}</span>
-    <span class="instance">${escapeHtml(today.date)}</span>
-  </div>`;
-
-  // No artwork? Degrade to a calendar — same thinking as the HTML fallback.
-  if (!art) {
-    return `<div class="view view--${variant}">
-  <div class="layout layout--col layout--center">
-    <div class="tombstone__title">No artwork available</div>
-  </div>
-  ${titleBar}
-</div>`;
-  }
-
-  // The tombstone: title first, then artist and date on one line beneath.
-  //
-  // Note we do NOT add a "circa" prefix — The Met already formats objectDate
-  // properly ("ca. 1740-45", "mid-14th century", "200-600 CE"), so anything
-  // we prepended would double it up.
-  // Title and credit are separate switches now, so each layout can shed one
-  // thing at a time as space shrinks rather than dropping the label wholesale.
-  const credit =
-    showCredit && art.artist
-      ? `<div class="tombstone__credit">${escapeHtml(art.artist)}${
-          art.date ? " · " + escapeHtml(art.date) : ""
-        }</div>`
-      : "";
-
-  const tombstone = showTitle
-    ? `<div class="tombstone">
-      <div class="tombstone__title">${escapeHtml(art.title)}</div>
-      ${credit}
-    </div>`
-    : "";
-
-  return `<div class="view view--${variant}">
-  <div class="layout ${direction} layout--center">
-    <div class="art">
-      <img class="image image-dither" src="${escapeHtml(
-        art.imageUrl
-      )}" alt="${escapeHtml(art.title)}" />
-    </div>
-    ${tombstone}
-  </div>
-  ${titleBar}
-</div>`;
-}
-
-// The POST route the previewer calls.
-//
-// It sends a bearer token and some metadata about the user and device. We
-// don't need either yet, so we ignore the body entirely — but the route must
-// accept POST, which is exactly why "Cannot POST /" appeared before this
-// existed. Any token works locally; a public deployment should check it.
+// The layouts themselves live in markup.js, shared with worker.js — so this
+// route just fetches a painting and hands it over to be dressed.
 
 app.post("/trmnl/markup", async (req, res) => {
   const art = await getRandomArtwork();
   const today = getToday();
 
-  res.json({
-    // Full screen: painting on top, full tombstone centred beneath it.
-    markup: buildView("full", art, today, {
-      showTitle: true,
-      showCredit: true,
-      direction: "layout--col",
-    }),
-
-    // Wide and short, so the tombstone sits BESIDE the painting rather than
-    // under it — a row uses that shape far better than a column would.
-    markup_half_horizontal: buildView("half_horizontal", art, today, {
-      showTitle: true,
-      showCredit: true,
-      direction: "layout--row",
-    }),
-
-    // Narrow, but still tall: room for the title, not for a second line.
-    markup_half_vertical: buildView("half_vertical", art, today, {
-      showTitle: true,
-      showCredit: false,
-      direction: "layout--col",
-    }),
-
-    // Smallest of all — painting and date only.
-    markup_quadrant: buildView("quadrant", art, today, {
-      showTitle: false,
-      showCredit: false,
-      direction: "layout--col",
-    }),
-
-    shared: SHARED_STYLES,
-  });
+  res.json(buildMarkupResponse(art, today));
 });
 
 // ── Start the server ───────────────────────────────────────────────────────
