@@ -88,7 +88,6 @@ export const SHARED_STYLES = `<style>
 
   .tombstone__title {
     font-style: italic; /* museum convention for titles of works */
-    line-height: 1.2;
     display: -webkit-box;
     -webkit-box-orient: vertical;
     overflow: hidden;
@@ -99,12 +98,17 @@ export const SHARED_STYLES = `<style>
   }
 
   /* ── Per-layout rules ────────────────────────────────────────────────
-     One global rule can't work: the same title has very different room in
-     a full screen than in a half-width column. Each layout gets its own
-     type size and its own line budget before truncating. */
+     Note what is NOT here any more: font sizes.
 
-  .view--full .tombstone__title  { font-size: 20px; -webkit-line-clamp: 2; }
-  .view--full .tombstone__credit { font-size: 14px; }
+     Those now come from TRMNL's text--* utility classes applied in the
+     markup, because those classes adapt to each device's density. Our old
+     hardcoded pixels looked right on OG (800x480) and far too small on
+     TRMNL X (1404x1872), which has roughly 3.5x the pixels.
+
+     What stays here is the line budget and the column geometry — things
+     the utility classes have no opinion about. */
+
+  .view--full .tombstone__title { -webkit-line-clamp: 2; }
 
   /* Half horizontal is TWO COLUMNS, always. The painting keeps 45% of the
      width no matter how long the title runs — without this the label
@@ -117,10 +121,9 @@ export const SHARED_STYLES = `<style>
     text-align: left;
     padding: 0 12px;
   }
-  .view--half_horizontal .tombstone__title  { font-size: 15px; -webkit-line-clamp: 3; }
-  .view--half_horizontal .tombstone__credit { font-size: 12px; }
+  .view--half_horizontal .tombstone__title { -webkit-line-clamp: 3; }
 
-  .view--half_vertical .tombstone__title { font-size: 16px; -webkit-line-clamp: 2; }
+  .view--half_vertical .tombstone__title { -webkit-line-clamp: 2; }
 </style>`;
 
 // ── One view ───────────────────────────────────────────────────────────────
@@ -132,7 +135,12 @@ export const SHARED_STYLES = `<style>
 // The date lands in the title bar's `instance` slot — its right-hand
 // position — which the framework provides rather than us hand-positioning it.
 
-export function buildView(variant, art, today, { showTitle, showCredit, direction }) {
+export function buildView(
+  variant,
+  art,
+  today,
+  { showTitle, showCredit, direction, titleClass, creditClass }
+) {
   // Identical in every layout. The date is the one thing that never gets cut.
   const titleBar = `<div class="title_bar">
     <span class="title">${escapeHtml(today.weekday)}</span>
@@ -143,7 +151,7 @@ export function buildView(variant, art, today, { showTitle, showCredit, directio
   if (!art) {
     return `<div class="view view--${variant}">
   <div class="layout layout--col layout--center">
-    <div class="tombstone__title">No artwork available</div>
+    <div class="tombstone__title text--large lg:text--xlarge">No artwork available</div>
   </div>
   ${titleBar}
 </div>`;
@@ -153,14 +161,14 @@ export function buildView(variant, art, today, { showTitle, showCredit, directio
   // ("ca. 1740-45", "mid-14th century"), so ours would double it up.
   const credit =
     showCredit && art.artist
-      ? `<div class="tombstone__credit">${escapeHtml(art.artist)}${
+      ? `<div class="tombstone__credit ${creditClass}">${escapeHtml(art.artist)}${
           art.date ? " · " + escapeHtml(art.date) : ""
         }</div>`
       : "";
 
   const tombstone = showTitle
     ? `<div class="tombstone">
-      <div class="tombstone__title">${escapeHtml(art.title)}</div>
+      <div class="tombstone__title ${titleClass}">${escapeHtml(art.title)}</div>
       ${credit}
     </div>`
     : "";
@@ -183,6 +191,11 @@ export function buildView(variant, art, today, { showTitle, showCredit, directio
 // This is the exact JSON shape TRMNL and the previewer expect. All four
 // markup variants are required; `shared` is optional.
 
+// Type sizes come from TRMNL's utility classes rather than our own pixels.
+//
+// The `lg:` prefix is the key part: it raises the size on larger displays,
+// so the same markup reads correctly on both an 800x480 OG and a 1404x1872
+// TRMNL X. Without it, text sized for OG looks tiny on X.
 export function buildMarkupResponse(art, today) {
   return {
     // Full screen: painting on top, full tombstone centred beneath.
@@ -190,13 +203,18 @@ export function buildMarkupResponse(art, today) {
       showTitle: true,
       showCredit: true,
       direction: "layout--col",
+      titleClass: "text--large lg:text--xlarge",
+      creditClass: "text--base lg:text--large",
     }),
 
     // Wide and short, so the tombstone sits BESIDE the painting.
+    // One step down the scale, since it shares the width with the painting.
     markup_half_horizontal: buildView("half_horizontal", art, today, {
       showTitle: true,
       showCredit: true,
       direction: "layout--row",
+      titleClass: "text--base lg:text--large",
+      creditClass: "text--small lg:text--base",
     }),
 
     // Narrow but still tall: room for the title, not a second line.
@@ -204,6 +222,7 @@ export function buildMarkupResponse(art, today) {
       showTitle: true,
       showCredit: false,
       direction: "layout--col",
+      titleClass: "text--base lg:text--large",
     }),
 
     // Smallest of all — painting and date only.
