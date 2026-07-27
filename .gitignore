@@ -2,6 +2,9 @@
 # Anyone can rebuild this folder by running `npm install`.
 node_modules/
 
+# Wrangler's local cache and build state — machine-specific, rebuilt on demand.
+.wrangler/
+
 # Logs and OS clutter
 *.log
 .DS_Store

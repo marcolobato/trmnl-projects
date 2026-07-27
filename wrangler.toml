@@ -1,0 +1,12 @@
+# Cloudflare Worker configuration.
+#
+# `name`               becomes part of your public URL:
+#                      art-dashboard.<your-subdomain>.workers.dev
+# `main`               which file Cloudflare runs.
+# `compatibility_date` pins Worker behaviour to how the platform worked on
+#                      this date, so a future platform change can't silently
+#                      alter your Worker. Leave it unless you have a reason.
+
+name = "art-dashboard"
+main = "art-dashboard/worker.js"
+compatibility_date = "2026-07-27"
