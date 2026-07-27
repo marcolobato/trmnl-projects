@@ -1,0 +1,12 @@
+{
+  "name": "trmnl-projects",
+  "version": "0.1.0",
+  "description": "A series of TRMNL e-ink plugins, built to learn the platform. Phase 1: public-domain art from The Met, rendered for a 1-bit screen.",
+  "type": "module",
+  "scripts": {
+    "art": "node art-dashboard/server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}

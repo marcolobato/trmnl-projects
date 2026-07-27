@@ -1,0 +1,7 @@
+# Node's installed packages — huge, machine-specific, never committed.
+# Anyone can rebuild this folder by running `npm install`.
+node_modules/
+
+# Logs and OS clutter
+*.log
+.DS_Store
