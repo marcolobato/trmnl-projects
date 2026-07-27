@@ -95,6 +95,22 @@ export const SHARED_STYLES = `<style>
 
   .tombstone__credit {
     padding-top: 2px;
+
+    /* Clamped like the title. An attribution such as "Workshop of Andrea del
+       Verrocchio · ca. 1470-1475" would otherwise wrap unchecked and shove
+       the painting around — the same failure the title clamp prevents. */
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 1;
+    overflow: hidden;
+  }
+
+  /* The "no artwork" message. NOT italic — italics are our convention for
+     titles of works, and this is a plain status message. The calendar in the
+     bar below is doing the real job in this state. */
+  .no-art {
+    text-align: center;
+    padding: 0 12px;
   }
 
   /* ── Per-layout rules ────────────────────────────────────────────────
@@ -121,7 +137,9 @@ export const SHARED_STYLES = `<style>
     text-align: left;
     padding: 0 12px;
   }
-  .view--half_horizontal .tombstone__title { -webkit-line-clamp: 3; }
+  .view--half_horizontal .tombstone__title  { -webkit-line-clamp: 3; }
+  /* Narrow column, so the credit gets a second line before truncating. */
+  .view--half_horizontal .tombstone__credit { -webkit-line-clamp: 2; }
 
   .view--half_vertical .tombstone__title { -webkit-line-clamp: 2; }
 </style>`;
@@ -151,7 +169,7 @@ export function buildView(
   if (!art) {
     return `<div class="view view--${variant}">
   <div class="layout layout--col layout--center">
-    <div class="tombstone__title text--large lg:text--xlarge">No artwork available</div>
+    <div class="no-art text--base lg:text--large">No artwork available</div>
   </div>
   ${titleBar}
 </div>`;

@@ -304,6 +304,21 @@ app.post("/trmnl/markup", async (req, res) => {
   res.json(buildMarkupResponse(art, today));
 });
 
+// ── Previewing the "no artwork" state ──────────────────────────────────────
+//
+// The empty state is hard to see on purpose — it only appears when The Met
+// fails us eight times running. Rather than temporarily sabotaging the code
+// to look at it, point the previewer's Markup URL at:
+//
+//   http://localhost:3000/trmnl/markup-empty
+//
+// This route exists ONLY in the local dev server. worker.js has no such
+// switch, so there's no way to reach it in production.
+
+app.post("/trmnl/markup-empty", (req, res) => {
+  res.json(buildMarkupResponse(null, getToday()));
+});
+
 // ── Start the server ───────────────────────────────────────────────────────
 
 app.listen(PORT, async () => {
