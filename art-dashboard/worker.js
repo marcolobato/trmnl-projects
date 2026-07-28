@@ -86,7 +86,12 @@ export default {
     const url = new URL(request.url);
 
     // The route TRMNL and the previewer call.
-    if (url.pathname === "/trmnl/markup" && request.method === "POST") {
+    //
+    // Deliberately answers ANY method, not just POST. The local previewer and
+    // TRMNL's marketplace flow both send POST, but TRMNL's polling strategy
+    // defaults to GET — and a 404 on GET is exactly why the first poll came
+    // back with no data. Accepting both means the default setting just works.
+    if (url.pathname === "/trmnl/markup") {
       const art = await getRandomArtwork();
       const today = getToday();
       return Response.json(buildMarkupResponse(art, today));
