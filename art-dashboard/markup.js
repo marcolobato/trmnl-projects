@@ -76,26 +76,6 @@ export const SHARED_STYLES = `<style>
     width: 100%;
     height: 100%;
     object-fit: contain; /* whole painting, never cropped */
-
-    /* ⚠️ These values are tested on hardware. Don't raise the contrast
-       without testing on a real device — here's why.
-
-       The obvious instinct on 1-bit e-ink is to push contrast hard, since
-       the panel has no real greys and fakes them by dithering black and
-       white dots. We tried exactly that: brightness(0.92) contrast(1.6).
-       It looked great in the web preview and FAILED on the device.
-
-       The reason is physical rather than visual. E-ink moves each pixel
-       mechanically, and driving one from white to black takes time and
-       energy. A heavily darkened image has far more pixels to flip than
-       the panel can finish in one refresh, so the refresh cuts short and
-       every pixel is stranded mid-travel — which reads as a washed-out
-       screen, the very thing the contrast was meant to fix.
-
-       So the ceiling here isn't taste, it's how much ink the panel can
-       physically lay down in one pass. These lighter values refresh
-       completely and repeatably, which beats a punchier image that only
-       renders properly some of the time. */
     filter: grayscale(1) brightness(1.1) contrast(1.15);
   }
 
@@ -131,56 +111,6 @@ export const SHARED_STYLES = `<style>
   .no-art {
     text-align: center;
     padding: 0 12px;
-  }
-
-  /* ── The date strip ──────────────────────────────────────────────────
-     The first rules we have ever written for TRMNL's title_bar. Until now
-     we emitted the markup and let the framework paint all of it.
-
-     On a 1-bit panel "darker" isn't really a colour instruction. Black is
-     already the darkest thing available and there is nothing underneath
-     it. What makes text READ as darker is more ink — thicker strokes
-     covering more pixels. So these two properties do different jobs:
-
-       color        forces pure black, in case the framework handed us a
-                    grey. A grey would get dithered into a weak stipple
-                    rather than solid pixels, which is exactly the
-                    "faded" look, and no amount of weight would fix it.
-
-       font-weight  thickens the strokes. This is the real lever, and the
-                    one doing most of the work.
-
-     The dithered background stays — you said you liked it. The text just
-     gets enough weight to sit on top of the pattern instead of dissolving
-     into it. */
-  /* The dithered background is DELIBERATELY left alone here.
-
-     We tried overriding it to solid white, which is the textbook fix for
-     legibility. It worked, and it was rejected on looks — the texture is
-     wanted. So the framework paints the bar and we only touch the text.
-
-     Which means the legibility has to come from the letterforms alone.
-     Worth being precise about what that leaves us, because the obvious
-     lever isn't one:
-
-     COLOUR IS ALREADY AT ITS LIMIT. The keyword black on a 1-bit panel
-     is the darkest value that exists — there is nothing underneath it,
-     and no CSS makes it darker. Anything that still reads as grey is not
-     a colour problem.
-
-     What actually works is MORE INK — thicker strokes covering more
-     pixels, so each glyph survives the panel's black-or-white decision
-     as a solid shape instead of a scattering of dots. Two levers do that,
-     and both are in play below: font-weight, and the size classes applied
-     to the spans in buildView.
-
-     If it still isn't enough against the dots, the next step up is a white
-     text-shadow halo — it knocks the pattern back in a tight ring around
-     each letter while leaving the rest of the bar textured. */
-  .view .title_bar .title,
-  .view .title_bar .instance {
-    color: black;
-    font-weight: 700;
   }
 
   /* ── Per-layout rules ────────────────────────────────────────────────
@@ -230,19 +160,9 @@ export function buildView(
   { showTitle, showCredit, direction, titleClass, creditClass }
 ) {
   // Identical in every layout. The date is the one thing that never gets cut.
-  // The text--* classes are the same ones the tombstone uses. The date was
-  // previously left at the framework's default size, which is small — and
-  // small type is the main reason it read as faded rather than black. Thin
-  // strokes land between pixels and the panel renders them as scattered dots
-  // instead of solid lines. Bigger type means thicker strokes, which is the
-  // only real "darker" available once the colour is already black.
   const titleBar = `<div class="title_bar">
-    <span class="title text--base lg:text--large">${escapeHtml(
-      today.weekday
-    )}</span>
-    <span class="instance text--base lg:text--large">${escapeHtml(
-      today.date
-    )}</span>
+    <span class="title">${escapeHtml(today.weekday)}</span>
+    <span class="instance">${escapeHtml(today.date)}</span>
   </div>`;
 
   // No artwork? Degrade to a calendar rather than a dead screen.
