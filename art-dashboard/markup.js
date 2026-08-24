@@ -153,6 +153,29 @@ export const SHARED_STYLES = `<style>
      The dithered background stays — you said you liked it. The text just
      gets enough weight to sit on top of the pattern instead of dissolving
      into it. */
+  /* Clears the dither out from behind the text.
+
+     The dither was never your complaint, and it isn't a fault — but it IS
+     what the letterforms have to compete with, and on a 1-bit panel that
+     competition is the whole problem. A black stroke on white separates
+     completely. The same stroke on a field of black dots has almost
+     nothing to separate from. Giving the bar a white ground is the single
+     biggest legibility win available here, larger than weight or size.
+
+     Note it's the background SHORTHAND, which also clears any
+     background-image the framework was using to draw the pattern. Using
+     background-color on its own would leave the dots sitting on top.
+
+     The rule keeps the bar a distinct zone now that the fill no longer
+     separates it from the artwork above.
+
+     Miss the texture? Delete these two declarations and it comes straight
+     back — the text keeps its new size and weight either way. */
+  .view .title_bar {
+    background: white;
+    border-top: 2px solid black;
+  }
+
   .view .title_bar .title,
   .view .title_bar .instance {
     color: black;
@@ -206,9 +229,19 @@ export function buildView(
   { showTitle, showCredit, direction, titleClass, creditClass }
 ) {
   // Identical in every layout. The date is the one thing that never gets cut.
+  // The text--* classes are the same ones the tombstone uses. The date was
+  // previously left at the framework's default size, which is small — and
+  // small type is the main reason it read as faded rather than black. Thin
+  // strokes land between pixels and the panel renders them as scattered dots
+  // instead of solid lines. Bigger type means thicker strokes, which is the
+  // only real "darker" available once the colour is already black.
   const titleBar = `<div class="title_bar">
-    <span class="title">${escapeHtml(today.weekday)}</span>
-    <span class="instance">${escapeHtml(today.date)}</span>
+    <span class="title text--base lg:text--large">${escapeHtml(
+      today.weekday
+    )}</span>
+    <span class="instance text--base lg:text--large">${escapeHtml(
+      today.date
+    )}</span>
   </div>`;
 
   // No artwork? Degrade to a calendar rather than a dead screen.
