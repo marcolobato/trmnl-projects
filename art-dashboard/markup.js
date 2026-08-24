@@ -76,7 +76,24 @@ export const SHARED_STYLES = `<style>
     width: 100%;
     height: 100%;
     object-fit: contain; /* whole painting, never cropped */
-    filter: grayscale(1) brightness(1.1) contrast(1.15);
+
+    /* Tuned for 1-bit e-ink, which has no real greys — it fakes them by
+       dithering black and white dots. Two consequences, both the opposite
+       of what you'd reach for on a backlit screen:
+
+       brightness BELOW 1, not above. This was 1.1, which lifted every
+       midtone. On a dithered display a lifted midtone tips over into plain
+       white and drops out entirely, which is what made the painting look
+       washed out. Pulling it under 1 keeps more of the image inside the
+       range that dithers at all.
+
+       contrast WELL above 1. Separating darks from lights before the
+       dithering happens is what gives the print its snap. 1.15 was too
+       gentle to survive the conversion to black-and-white dots.
+
+       These two numbers are the dial to turn if it still isn't right —
+       raise contrast for more punch, lower brightness for more weight. */
+    filter: grayscale(1) brightness(0.92) contrast(1.6);
   }
 
   /* The "tombstone" — museum term for the label beside a work. */
