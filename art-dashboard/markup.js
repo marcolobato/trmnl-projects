@@ -77,23 +77,26 @@ export const SHARED_STYLES = `<style>
     height: 100%;
     object-fit: contain; /* whole painting, never cropped */
 
-    /* Tuned for 1-bit e-ink, which has no real greys — it fakes them by
-       dithering black and white dots. Two consequences, both the opposite
-       of what you'd reach for on a backlit screen:
+    /* ⚠️ These values are tested on hardware. Don't raise the contrast
+       without testing on a real device — here's why.
 
-       brightness BELOW 1, not above. This was 1.1, which lifted every
-       midtone. On a dithered display a lifted midtone tips over into plain
-       white and drops out entirely, which is what made the painting look
-       washed out. Pulling it under 1 keeps more of the image inside the
-       range that dithers at all.
+       The obvious instinct on 1-bit e-ink is to push contrast hard, since
+       the panel has no real greys and fakes them by dithering black and
+       white dots. We tried exactly that: brightness(0.92) contrast(1.6).
+       It looked great in the web preview and FAILED on the device.
 
-       contrast WELL above 1. Separating darks from lights before the
-       dithering happens is what gives the print its snap. 1.15 was too
-       gentle to survive the conversion to black-and-white dots.
+       The reason is physical rather than visual. E-ink moves each pixel
+       mechanically, and driving one from white to black takes time and
+       energy. A heavily darkened image has far more pixels to flip than
+       the panel can finish in one refresh, so the refresh cuts short and
+       every pixel is stranded mid-travel — which reads as a washed-out
+       screen, the very thing the contrast was meant to fix.
 
-       These two numbers are the dial to turn if it still isn't right —
-       raise contrast for more punch, lower brightness for more weight. */
-    filter: grayscale(1) brightness(0.92) contrast(1.6);
+       So the ceiling here isn't taste, it's how much ink the panel can
+       physically lay down in one pass. These lighter values refresh
+       completely and repeatably, which beats a punchier image that only
+       renders properly some of the time. */
+    filter: grayscale(1) brightness(1.1) contrast(1.15);
   }
 
   /* The "tombstone" — museum term for the label beside a work. */
@@ -128,6 +131,32 @@ export const SHARED_STYLES = `<style>
   .no-art {
     text-align: center;
     padding: 0 12px;
+  }
+
+  /* ── The date strip ──────────────────────────────────────────────────
+     The first rules we have ever written for TRMNL's title_bar. Until now
+     we emitted the markup and let the framework paint all of it.
+
+     On a 1-bit panel "darker" isn't really a colour instruction. Black is
+     already the darkest thing available and there is nothing underneath
+     it. What makes text READ as darker is more ink — thicker strokes
+     covering more pixels. So these two properties do different jobs:
+
+       color        forces pure black, in case the framework handed us a
+                    grey. A grey would get dithered into a weak stipple
+                    rather than solid pixels, which is exactly the
+                    "faded" look, and no amount of weight would fix it.
+
+       font-weight  thickens the strokes. This is the real lever, and the
+                    one doing most of the work.
+
+     The dithered background stays — you said you liked it. The text just
+     gets enough weight to sit on top of the pattern instead of dissolving
+     into it. */
+  .view .title_bar .title,
+  .view .title_bar .instance {
+    color: black;
+    font-weight: 700;
   }
 
   /* ── Per-layout rules ────────────────────────────────────────────────
