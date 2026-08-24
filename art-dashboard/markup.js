@@ -153,29 +153,30 @@ export const SHARED_STYLES = `<style>
      The dithered background stays — you said you liked it. The text just
      gets enough weight to sit on top of the pattern instead of dissolving
      into it. */
-  /* Clears the dither out from behind the text.
+  /* The dithered background is DELIBERATELY left alone here.
 
-     The dither was never your complaint, and it isn't a fault — but it IS
-     what the letterforms have to compete with, and on a 1-bit panel that
-     competition is the whole problem. A black stroke on white separates
-     completely. The same stroke on a field of black dots has almost
-     nothing to separate from. Giving the bar a white ground is the single
-     biggest legibility win available here, larger than weight or size.
+     We tried overriding it to solid white, which is the textbook fix for
+     legibility. It worked, and it was rejected on looks — the texture is
+     wanted. So the framework paints the bar and we only touch the text.
 
-     Note it's the background SHORTHAND, which also clears any
-     background-image the framework was using to draw the pattern. Using
-     background-color on its own would leave the dots sitting on top.
+     Which means the legibility has to come from the letterforms alone.
+     Worth being precise about what that leaves us, because the obvious
+     lever isn't one:
 
-     The rule keeps the bar a distinct zone now that the fill no longer
-     separates it from the artwork above.
+     COLOUR IS ALREADY AT ITS LIMIT. The keyword black on a 1-bit panel
+     is the darkest value that exists — there is nothing underneath it,
+     and no CSS makes it darker. Anything that still reads as grey is not
+     a colour problem.
 
-     Miss the texture? Delete these two declarations and it comes straight
-     back — the text keeps its new size and weight either way. */
-  .view .title_bar {
-    background: white;
-    border-top: 2px solid black;
-  }
+     What actually works is MORE INK — thicker strokes covering more
+     pixels, so each glyph survives the panel's black-or-white decision
+     as a solid shape instead of a scattering of dots. Two levers do that,
+     and both are in play below: font-weight, and the size classes applied
+     to the spans in buildView.
 
+     If it still isn't enough against the dots, the next step up is a white
+     text-shadow halo — it knocks the pattern back in a tight ring around
+     each letter while leaving the rest of the bar textured. */
   .view .title_bar .title,
   .view .title_bar .instance {
     color: black;
