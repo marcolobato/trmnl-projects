@@ -4,7 +4,8 @@
   "description": "A series of TRMNL e-ink plugins, built to learn the platform. Phase 1: public-domain art from The Met, rendered for a 1-bit screen.",
   "type": "module",
   "scripts": {
-    "art": "node art-dashboard/server.js"
+    "art": "node art-dashboard/server.js",
+    "flatirons": "node flatirons/server.js"
   },
   "dependencies": {
     "express": "^4.19.2"
