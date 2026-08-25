@@ -42,7 +42,11 @@ function resolveTime(query) {
 
 // ── The route TRMNL and the previewer use ──────────────────────────────────
 
-app.get("/", (req, res) => {
+// `app.all` rather than `app.get` on purpose. TRMNL's polling fetches with
+// GET, but the local preview tool POSTs to the same URL — and a GET-only
+// route answers that with "Cannot POST /", which is the 404 you'll see in
+// the preview panel. Answering both keeps one endpoint for both tools.
+app.all("/", (req, res) => {
   const scene = buildScene(resolveTime(req.query));
   res.json(buildMarkupResponse(scene));
 });

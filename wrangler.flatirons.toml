@@ -1,0 +1,22 @@
+# Cloudflare Worker configuration for the Flatirons plugin.
+#
+# This is a SECOND config file on purpose. wrangler.toml names
+# `art-dashboard` at its top level, and a wrangler.toml can only describe one
+# Worker that way — adding Flatirons to it would rename and overwrite the art
+# plugin on the next deploy.
+#
+# Because it isn't the default filename, every command has to point at it:
+#
+#   npx wrangler deploy -c wrangler.flatirons.toml
+#   npx wrangler dev    -c wrangler.flatirons.toml
+#
+# Forgetting the -c is the mistake to watch for: wrangler would silently fall
+# back to wrangler.toml and deploy the wrong plugin.
+
+name = "flatirons"
+main = "flatirons/worker.js"
+
+# Pins Worker behaviour to how the platform worked on this date, so a future
+# platform change can't silently alter what we deploy. Leave it unless you
+# have a reason to move it.
+compatibility_date = "2026-08-25"
