@@ -38,31 +38,46 @@
 </div>
 
 <style>
-  /* 800x432 = the 480px screen minus the 48px title bar. Fixed pixels, not
-     percentages: the tile grid must land on whole pixels or the covers
-     shimmer against the dither underneath. 432 / 3 rows = exactly 144. */
+  /* Fill whatever the framework gives us, rather than hardcoding a height.
+     The framework sizes the layout itself:
+
+       layout height = screen-h - (gap * 2) - title-bar-height
+
+     On an 800x480 device that is 480 - 20 - 40 = 420px, and the title bar is
+     40px tall — NOT the 48 assumed earlier. Hardcoding 432px overflowed the
+     layout by 12px and pushed the title bar off the bottom of the screen.
+
+     Percentages instead of pixels means this stays correct if the gap, the
+     bleed margin setting, or the device changes. */
+  .layout {
+    padding: 0;
+  }
+
   .scene {
     position: relative;
-    width: 800px;
-    height: 432px;
+    width: 100%;
+    height: 100%;
     overflow: hidden;
   }
 
   .scene__plate {
     display: block;
-    width: 800px;
-    height: 432px;
-    image-rendering: pixelated;   /* never resample the dither */
+    width: 100%;
+    height: 100%;
+    /* cover, not fill: crop a sliver rather than stretch the mountain if the
+       plate's aspect doesn't exactly match the container. */
+    object-fit: cover;
+    image-rendering: pixelated;   /* never smooth the dither */
   }
 
-  /* Grid rather than 12 hand-positioned boxes: it guarantees the covers
-     tile edge to edge with no rounding gaps. */
+  /* Grid rather than 12 hand-positioned boxes: it guarantees the covers tile
+     edge to edge with no rounding gaps, at any container size. */
   .scene__tiles {
     position: absolute;
     inset: 0;
     display: grid;
-    grid-template-columns: repeat(4, 200px);
-    grid-template-rows: repeat(3, 144px);
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: repeat(3, 1fr);
   }
 
   /* Revealed: draw nothing, let the photograph through. */

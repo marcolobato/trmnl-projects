@@ -93,10 +93,23 @@ export function localParts(date) {
   const hour = Number(parts.hour);
   const minute = Number(parts.minute);
 
+  // "Tuesday, August 25, 2026" — the long American form for the title bar.
+  // Built with a second formatter rather than assembled from the parts above,
+  // so the comma placement and month names come from Intl rather than from us
+  // hand-gluing strings together.
+  const longDate = new Intl.DateTimeFormat("en-US", {
+    timeZone: TIME_ZONE,
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  }).format(date);
+
   return {
     // "2026-08-25" — the seed for everything that should change daily.
     dateKey: `${parts.year}-${parts.month}-${parts.day}`,
     weekday: parts.weekday,
+    longDate,
     hour,
     minute,
     minutes: hour * 60 + minute,

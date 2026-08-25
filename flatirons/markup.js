@@ -96,7 +96,7 @@ export function buildView(scene, { debug = false } = {}) {
   // two plugins read as siblings rather than strangers.
   const titleBar = `<div class="title_bar">
       <span class="title">${escapeHtml(scene.message)}</span>
-      <span class="instance">${escapeHtml(scene.local.weekday)}</span>
+      <span class="instance">${escapeHtml(scene.local.longDate)}</span>
     </div>`;
 
   // Local-preview only. Never rendered in production.
@@ -151,6 +151,7 @@ export function buildMarkupResponse(scene, options) {
     plate_url: scene.plateUrl,
     message: scene.message,
     weekday: scene.local.weekday,
+    date_long: scene.local.longDate,
     date: scene.local.dateKey,
     revealed_count: scene.revealedCount,
     tiles: Array.from({ length: TILES }, (_, i) => ({
