@@ -25,18 +25,26 @@
 // evening in production. Same lesson art-dashboard already learned.
 export const TIME_ZONE = "America/Denver";
 
-// The art is 800x432, not 800x480. TRMNL's title bar takes the bottom 48px,
-// and 432 divides into 3 rows of exactly 144px — so tiles land on whole
-// pixels and their edges can't shimmer.
-export const ART_W = 800;
-export const ART_H = 432;
+// The art area is 780x420, not the full 800x480. The framework computes it:
+//
+//   width  = screen-w - (gap * 2)              = 800 - 20 = 780
+//   height = screen-h - (gap * 2) - title-bar  = 480 - 20 - 40 = 420
+//
+// with --gap 10px and --title-bar-height 40px. Both divide cleanly by the
+// grid: 780/4 = 195, 420/3 = 140, so tiles land on whole pixels and their
+// edges can't shimmer against the dither.
+//
+// The plates are cut to exactly this size so the browser never rescales them
+// — resampling an ordered dither is what turns it to mush.
+export const ART_W = 780;
+export const ART_H = 420;
 
 export const COLS = 4;
 export const ROWS = 3;
 export const TILES = COLS * ROWS; // 12
 
-export const TILE_W = ART_W / COLS; // 200
-export const TILE_H = ART_H / ROWS; // 144
+export const TILE_W = ART_W / COLS; // 195
+export const TILE_H = ART_H / ROWS; // 140
 
 // The four lighting states. Named here so both the plate route and the
 // scene builder agree on what's valid — and so the plate route can reject

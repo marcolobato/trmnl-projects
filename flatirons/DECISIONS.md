@@ -141,3 +141,35 @@ reviewed but are not wired up yet.
   decouple sky from mountain, which currently move together.
 - **What happens between 21:00 and midnight**, once all twelve are revealed.
 - **Timezone is hardcoded to Denver**, as in `art-dashboard`.
+
+---
+
+## 10 · Bleed margin stays ON, and the art is 780×420
+
+**Earlier we said:** set "Remove bleed margin" to Yes, so the art could be a
+full 800px wide.
+
+**We now do:** leave it at the default No.
+
+**Why:** every piece of breathing room in the framework comes from
+`var(--gap)`. Removing the bleed margin zeroes it, which also removes the
+space beneath the title bar — the text then sits directly on the physical
+bottom edge of the panel.
+
+That also fixed the arithmetic. The framework computes the art area itself:
+
+    .layout:has(+.title_bar) {
+      height: calc(var(--screen-h) - var(--gap)*2 - var(--title-bar-height));
+    }
+
+With `--gap: 10px` and `--title-bar-height: 40px` (not the 48 first assumed),
+the art area is **780 × 420**. Both divide cleanly by the grid — 780/4 = 195,
+420/3 = 140 — so tiles land on whole pixels.
+
+The plates are cut to exactly 780×420 so the browser never rescales them.
+Resampling an ordered dither is what turns it to mush, and `object-fit` was
+quietly doing that at 800×432.
+
+**The general lesson:** the framework already calculates this. Hardcoding a
+height means maintaining a number it owns, and getting it wrong by 12px is
+what pushed the title bar off-screen in the first place.
