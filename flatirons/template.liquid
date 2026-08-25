@@ -1,0 +1,78 @@
+{% comment %}
+  Get Outside · Flatirons — paste this whole file into TRMNL's markup editor.
+
+  Variables come from the polling endpoint:
+    plate_url  message  weekday  revealed_count  plate
+    tiles      12 items, each { index, revealed }
+
+  Nesting is fixed by the framework:
+    screen -> view view--full -> layout, with title_bar a SIBLING of layout.
+{% endcomment %}
+
+<div class="screen">
+  <div class="view view--full">
+
+    <div class="layout">
+      <div class="scene">
+
+        {% comment %} No "image-dither" class: the plate is already dithered
+        to 8 tones, and dithering it again beats one pattern against another
+        and produces moire. {% endcomment %}
+        <img class="scene__plate"
+             src="{{ plate_url }}"
+             alt="The Boulder Flatirons at {{ plate }}, {{ revealed_count }} of 12 tiles uncovered" />
+
+        <div class="scene__tiles">
+          {% for tile in tiles %}<div class="tile{% unless tile.revealed %} tile--hidden{% endunless %}"></div>{% endfor %}
+        </div>
+
+      </div>
+    </div>
+
+    <div class="title_bar">
+      <span class="title">{{ message }}</span>
+      <span class="instance">{{ weekday }}</span>
+    </div>
+
+  </div>
+</div>
+
+<style>
+  /* 800x432 = the 480px screen minus the 48px title bar. Fixed pixels, not
+     percentages: the tile grid must land on whole pixels or the covers
+     shimmer against the dither underneath. 432 / 3 rows = exactly 144. */
+  .scene {
+    position: relative;
+    width: 800px;
+    height: 432px;
+    overflow: hidden;
+  }
+
+  .scene__plate {
+    display: block;
+    width: 800px;
+    height: 432px;
+    image-rendering: pixelated;   /* never resample the dither */
+  }
+
+  /* Grid rather than 12 hand-positioned boxes: it guarantees the covers
+     tile edge to edge with no rounding gaps. */
+  .scene__tiles {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    grid-template-columns: repeat(4, 200px);
+    grid-template-rows: repeat(3, 144px);
+  }
+
+  /* Revealed: draw nothing, let the photograph through. */
+  .tile { background: transparent; }
+
+  /* Unrevealed: the artwork at ~12% strength. Blank white was too abrupt,
+     a checkerboard veil fought the artwork. Lower to 0.80 for a stronger
+     ghost if 12% reads as blank on the device. */
+  .tile--hidden {
+    background: #fff;
+    opacity: 0.88;
+  }
+</style>

@@ -137,6 +137,32 @@ export function buildView(scene, { debug = false } = {}) {
 
 export function buildMarkupResponse(scene, options) {
   return {
+    // ── For the Liquid template in TRMNL's markup editor ──────────────────
+    //
+    // TRMNL's normal model is: your endpoint returns DATA, and a Liquid
+    // template in their editor turns it into markup. These are the variables
+    // that template reads. See template.liquid.
+    //
+    // `tiles` is an array of objects rather than a list of revealed indexes
+    // because Liquid has no clean way to ask "does this array contain 7?".
+    // Twelve small objects, each already knowing its own answer, keeps the
+    // template to a single loop with no lookups.
+    plate: scene.plate,
+    plate_url: scene.plateUrl,
+    message: scene.message,
+    weekday: scene.local.weekday,
+    date: scene.local.dateKey,
+    revealed_count: scene.revealedCount,
+    tiles: Array.from({ length: TILES }, (_, i) => ({
+      index: i,
+      revealed: scene.revealed.has(i),
+    })),
+
+    // ── For rendering without a template ──────────────────────────────────
+    //
+    // Kept so the endpoint still works with an empty markup editor, which is
+    // how art-dashboard runs. Harmless when a template IS present — it just
+    // becomes a variable nobody reads.
     markup: buildView(scene, options),
     shared: STYLES,
   };

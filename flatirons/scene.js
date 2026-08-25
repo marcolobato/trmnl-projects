@@ -38,9 +38,15 @@ export const TILES = COLS * ROWS; // 12
 export const TILE_W = ART_W / COLS; // 200
 export const TILE_H = ART_H / ROWS; // 144
 
-// Where the plates live. Both runtimes use the same public URL, so local
-// preview and production fetch the identical bytes — no "works on my
-// machine" gap between them.
+// The four lighting states. Named here so both the plate route and the
+// scene builder agree on what's valid — and so the plate route can reject
+// anything else rather than proxying arbitrary URLs.
+export const PLATES = ["dawn", "day", "dusk", "night"];
+
+// Fallback location for the plates. Both runtimes normally override this
+// with their OWN origin, so the images are served from the same host as the
+// markup — see the note in worker.js. This GitHub URL is only used if
+// nobody passes a base, which keeps scene.js usable on its own in tests.
 export const PLATE_BASE =
   "https://raw.githubusercontent.com/marcolobato/trmnl-projects/main/images/flatirons";
 
@@ -221,7 +227,11 @@ export function messageFor(clock, dateKey) {
 
 // ── Everything the page needs, from one instant ────────────────────────────
 
-export function buildScene(date) {
+// `plateBase` lets the caller say where the images are served from. The
+// Worker passes its own origin so markup and images share one host; the
+// local server does the same. Defaults to GitHub so this function still
+// works standalone.
+export function buildScene(date, { plateBase = PLATE_BASE } = {}) {
   const local = localParts(date);
   const shown = revealCount(local.minutes);
   const order = revealOrder(local.dateKey);
@@ -234,7 +244,7 @@ export function buildScene(date) {
   return {
     local,
     plate: plateFor(local.clock),
-    plateUrl: `${PLATE_BASE}/${plateFor(local.clock)}.png`,
+    plateUrl: `${plateBase}/${plateFor(local.clock)}.png`,
     message: messageFor(local.clock, local.dateKey),
     order,
     revealed,

@@ -14,8 +14,13 @@
 // error path to write. That is the payoff for the stateless design.
 // ─────────────────────────────────────────────────────────────────────────
 
-import { buildScene } from "./scene.js";
+import { buildScene, PLATES } from "./scene.js";
 import { buildMarkupResponse } from "./markup.js";
+
+// Where the PNGs actually live. The Worker fetches them from here itself and
+// re-serves them from its own domain — see the /plate route below.
+const GITHUB_PLATES =
+  "https://raw.githubusercontent.com/marcolobato/trmnl-projects/main/images/flatirons";
 
 // Time travel, same as the local server. Handy for checking dusk from a
 // phone without waiting for dusk. Falls back to now if the value is junk,
@@ -33,8 +38,48 @@ export default {
 
     // TRMNL polls with GET; the local preview tool POSTs. Both get the same
     // answer — see the matching note in server.js.
+    // ── The plates, served from OUR domain ────────────────────────────────
+    //
+    // Why proxy instead of pointing the markup straight at GitHub: TRMNL
+    // renders the page on their servers, and we can't assume their renderer
+    // is willing or able to fetch a third-party host. Serving the images
+    // from the same origin as the markup removes that entire question, and
+    // also removes a dependency on GitHub staying reachable.
+    //
+    // The Worker fetching GitHub is a different matter — that's a
+    // server-to-server call with none of a renderer's restrictions.
+    if (url.pathname.startsWith("/plate/")) {
+      const name = url.pathname.slice("/plate/".length).replace(/\.png$/, "");
+
+      // Whitelist, not passthrough. Without this, /plate/../../anything
+      // would turn the Worker into an open proxy for any URL.
+      if (!PLATES.includes(name)) {
+        return new Response("Unknown plate", { status: 404 });
+      }
+
+      const upstream = await fetch(`${GITHUB_PLATES}/${name}.png`, {
+        // Cache at Cloudflare's edge for a day. The plates only change when
+        // we regenerate them, so there's no reason to hit GitHub per refresh.
+        cf: { cacheTtl: 86400, cacheEverything: true },
+      });
+
+      if (!upstream.ok) {
+        return new Response("Plate unavailable", { status: 502 });
+      }
+
+      return new Response(upstream.body, {
+        headers: {
+          "content-type": "image/png",
+          "cache-control": "public, max-age=86400",
+        },
+      });
+    }
+
     if (url.pathname === "/") {
-      const scene = buildScene(resolveTime(url));
+      // Point the markup at our own /plate route rather than at GitHub.
+      const scene = buildScene(resolveTime(url), {
+        plateBase: `${url.origin}/plate`,
+      });
 
       return Response.json(buildMarkupResponse(scene), {
         headers: {

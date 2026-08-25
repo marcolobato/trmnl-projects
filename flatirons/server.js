@@ -22,6 +22,8 @@
 // ─────────────────────────────────────────────────────────────────────────
 
 import express from "express";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { buildScene, TILES } from "./scene.js";
 import { buildView, buildMarkupResponse, STYLES } from "./markup.js";
 
@@ -46,15 +48,24 @@ function resolveTime(query) {
 // GET, but the local preview tool POSTs to the same URL — and a GET-only
 // route answers that with "Cannot POST /", which is the 404 you'll see in
 // the preview panel. Answering both keeps one endpoint for both tools.
+// Serve the plates from this server too, so local preview and production
+// have the same shape: markup and images always from one origin.
+const REPO_ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
+app.use("/plate", express.static(path.join(REPO_ROOT, "images", "flatirons")));
+
 app.all("/", (req, res) => {
-  const scene = buildScene(resolveTime(req.query));
+  const scene = buildScene(resolveTime(req.query), {
+    plateBase: `${req.protocol}://${req.get("host")}/plate`,
+  });
   res.json(buildMarkupResponse(scene));
 });
 
 // ── The route your eyes use ────────────────────────────────────────────────
 
 app.get("/preview", (req, res) => {
-  const scene = buildScene(resolveTime(req.query));
+  const scene = buildScene(resolveTime(req.query), {
+    plateBase: `${req.protocol}://${req.get("host")}/plate`,
+  });
 
   // TRMNL's framework CSS normally supplies `view`, `layout` and
   // `title_bar`. It isn't loaded here, so this page draws just enough of
