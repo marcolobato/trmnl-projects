@@ -39,12 +39,44 @@ export const TIME_ZONE = "America/Denver";
 export const ART_W = 780;
 export const ART_H = 420;
 
+// ── The tile reveal, parked ────────────────────────────────────────────────
+//
+// PARKED, NOT DELETED. Set this true and the grid comes back exactly as it
+// was — the order, the pacing and the clock arithmetic below are all intact
+// and still unit-testable.
+//
+// Why it came out: over a composed naturalistic photograph the grid read as a
+// RENDER FAULT rather than as anticipation. Someone glancing at the panel saw
+// a broken image, not a picture arriving. That reading is fatal for an object
+// meant to sit on a wall unexplained.
+//
+// It was also solving a problem that no longer exists. The reveal was invented
+// to make each day look different; time-of-day and weather now do that, and do
+// it without spending the image. The mechanic was costing us the photograph
+// and returning variation we already had.
+//
+// Worth revisiting in a form that doesn't cut the composition into squares —
+// a horizontal wipe following the light, or a reveal shaped by the terrain
+// rather than by a grid. The scheduling logic is the reusable part.
+export const REVEAL_ENABLED = false;
+
 export const COLS = 4;
 export const ROWS = 3;
 export const TILES = COLS * ROWS; // 12
 
 export const TILE_W = ART_W / COLS; // 195
 export const TILE_H = ART_H / ROWS; // 140
+
+// ── Where a reminder card sits ─────────────────────────────────────────────
+//
+// Kept from the reveal work, but no longer a grid cell. Measured against the
+// zone mask rather than chosen by eye: this rectangle is 100% inside the
+// pasture zone, which is the brightest and least detailed part of the frame,
+// so text on it has maximum contrast and covers nothing that matters.
+//
+// The peak sits right of centre and the treeline descends left to right, so
+// the lower LEFT is the only large area that stays clear at every hour.
+export const REMINDER_CARD = { x: 40, y: 290, w: 340, h: 100 };
 
 // Four lighting states × three weather states = twelve plates, named
 // "<time>-<weather>.png". Listed here so the plate route and the scene
@@ -299,13 +331,17 @@ export function messageFor(clock, dateKey) {
 // works standalone.
 export function buildScene(date, { plateBase = PLATE_BASE } = {}) {
   const local = localParts(date);
-  const shown = revealCount(local.minutes);
-  const order = revealOrder(local.dateKey);
 
-  // Which of the 12 grid positions are uncovered right now.
+  // With the reveal parked, every tile is "revealed" — which is just another
+  // way of saying the whole plate ships. The scheduling call is still made so
+  // the numbers stay observable in /health and in the local preview, and so
+  // turning REVEAL_ENABLED back on is a one-line change rather than an
+  // archaeology exercise.
+  const shown = REVEAL_ENABLED ? revealCount(local.minutes) : TILES;
+  const order = revealOrder(local.dateKey);
   const revealed = new Set(order.slice(0, shown));
 
-  const next = nextRevealAt(local.minutes);
+  const next = REVEAL_ENABLED ? nextRevealAt(local.minutes) : null;
 
   return {
     local,

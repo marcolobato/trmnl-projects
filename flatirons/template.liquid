@@ -1,12 +1,14 @@
 {% comment %}
   Get Outside · Flatirons — paste this whole file into TRMNL's markup editor.
 
-  Variables come from the polling endpoint:
-    plate_url  message  weekday  revealed_count  plate
-    tiles      12 items, each { index, revealed }
+  Variables from the polling endpoint:
+    plate_url  time_of_day  weather  message  date_long
 
   Nesting is fixed by the framework:
     screen -> view view--full -> layout, with title_bar a SIBLING of layout.
+
+  The tile-reveal version of this template is parked at
+  flatirons/parked/template-reveal.liquid — see DECISIONS.md #11.
 {% endcomment %}
 
 <div class="screen">
@@ -14,44 +16,30 @@
 
     <div class="layout">
       <div class="scene">
-
         {% comment %} No "image-dither" class: the plate is already dithered
         to 8 tones, and dithering it again beats one pattern against another
         and produces moire. {% endcomment %}
-        <img class="scene__plate"
+        <img class="image scene__plate"
              src="{{ plate_url }}"
-             alt="The Boulder Flatirons at {{ plate }}, {{ revealed_count }} of 12 tiles uncovered" />
-
-        <div class="scene__tiles">
-          {% for tile in tiles %}<div class="tile{% unless tile.revealed %} tile--hidden{% endunless %}"></div>{% endfor %}
-        </div>
-
+             alt="The Boulder Flatirons, {{ time_of_day }}, {{ weather }}" />
       </div>
     </div>
 
     <div class="title_bar">
       <span class="title">{{ message }}</span>
-      <span class="instance">{{ weekday }}</span>
+      <span class="instance">{{ date_long }}</span>
     </div>
 
   </div>
 </div>
 
 <style>
-  /* Fill whatever the framework gives us, rather than hardcoding a height.
-     The framework sizes the layout itself:
-
+  /* Fill whatever the framework gives us. It sizes the layout itself:
        layout height = screen-h - (gap * 2) - title-bar-height
-
-     On an 800x480 device that is 480 - 20 - 40 = 420px, and the title bar is
-     40px tall — NOT the 48 assumed earlier. Hardcoding 432px overflowed the
-     layout by 12px and pushed the title bar off the bottom of the screen.
-
-     Percentages instead of pixels means this stays correct if the gap, the
-     bleed margin setting, or the device changes. */
-  .layout {
-    padding: 0;
-  }
+     which on an 800x480 device is 480 - 20 - 40 = 420, with the art area
+     780 wide. Percentages keep this right if the gap, the bleed-margin
+     setting, or the device ever changes. */
+  .layout { padding: 0; }
 
   .scene {
     position: relative;
@@ -64,43 +52,7 @@
     display: block;
     width: 100%;
     height: 100%;
-    /* cover, not fill: crop a sliver rather than stretch the mountain if the
-       plate's aspect doesn't exactly match the container. */
     object-fit: cover;
     image-rendering: pixelated;   /* never smooth the dither */
-  }
-
-  /* Grid rather than 12 hand-positioned boxes: it guarantees the covers tile
-     edge to edge with no rounding gaps, at any container size. */
-  .scene__tiles {
-    position: absolute;
-    inset: 0;
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    grid-template-rows: repeat(3, 1fr);
-  }
-
-  /* Revealed: draw nothing, let the photograph through. */
-  .tile { background: transparent; }
-
-  /* Unrevealed: a 25% ink stipple over white.
-
-     The original ~12% white-over-image ghost was invisible on the panel.
-     Reflective e-ink has no backlight, so pale greys collapse toward white
-     and simply have nowhere to live. A PATTERN survives because it is built
-     from full-black pixels with gaps — the panel renders each at full
-     strength and the eye averages them into tone. Same reason the whole
-     plugin is dithered rather than grey.
-
-     TWO KNOBS to tune on the device:
-       background-size  4px = one 2px dot per 4px cell (25% ink).
-                        Larger = coarser and lighter. 6px is noticeably softer.
-       opacity          1 = fully covered. Drop to 0.85 to let a ghost of the
-                        photograph back through. */
-  .tile--hidden {
-    background-color: #fff;
-    background-image: repeating-conic-gradient(#000 0% 25%, #fff 0% 100%);
-    background-size: 4px 4px;
-    opacity: 0.94;
   }
 </style>

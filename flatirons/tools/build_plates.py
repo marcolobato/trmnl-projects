@@ -45,7 +45,12 @@ TIMES = {
     #          sky            massif         pasture        gamma
     "dawn":  ((-0.19, 1.00), ( 0.00, 1.10), (-0.08, 1.05), 1.00),
     "day":   (( 0.06, 1.00), ( 0.10, 1.05), ( 0.10, 1.05), 1.00),
-    "dusk":  ((-0.05, 1.05), (-0.07, 1.30), (-0.14, 1.20), 0.95),
+    # Dusk sky was -0.05, which landed at 67.5% luminance against day's
+    # 72.6% — five points apart, so a 6:43pm plate read as midday. Twilight
+    # is mostly a SKY event; the land keeps its warmth longer than the sky
+    # keeps its light. Sky drops hard, land lifts slightly to pay for the
+    # ink the darker sky costs.
+    "dusk":  ((-0.25, 1.05), (-0.02, 1.30), (-0.09, 1.20), 0.95),
     "night": ((-0.57, 0.90), ( 0.08, 1.10), ( 0.03, 1.00), 0.95),
 }
 

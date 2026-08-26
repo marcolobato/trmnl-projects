@@ -15,7 +15,7 @@
 // fixed once — it looked right on OG and far too small on TRMNL X.
 // ─────────────────────────────────────────────────────────────────────────
 
-import { ART_W, ART_H, COLS, ROWS, TILES, TILE_W, TILE_H } from "./scene.js";
+import { ART_W, ART_H, REMINDER_CARD } from "./scene.js";
 
 // Titles and messages can contain characters that would break our HTML.
 export function escapeHtml(text) {
@@ -34,8 +34,8 @@ export function escapeHtml(text) {
 
 export const STYLES = `<style>
   /* The art area, 780x420 — what the framework leaves after the 10px gap
-     and the 40px title bar. Fixed pixels because the tile grid has to land
-     on whole pixels or the covers shimmer against the dither underneath. */
+     and the 40px title bar. Fixed pixels so the plate is never rescaled;
+     resampling an ordered dither is what turns it to mush. */
   .scene {
     position: relative;
     width: ${ART_W}px;
@@ -55,44 +55,33 @@ export const STYLES = `<style>
     image-rendering: pixelated;
   }
 
-  /* Twelve covers laid over the plate. CSS Grid rather than absolute
-     positioning for each: the grid guarantees they tile edge to edge with
-     no rounding gaps between them. */
-  .scene__tiles {
+  /* The reminder card. Not yet used, but the geometry is measured rather
+     than guessed: REMINDER_CARD sits entirely inside the pasture zone, the
+     brightest and least detailed part of the frame. */
+  .scene__reminder {
     position: absolute;
-    inset: 0;
-    display: grid;
-    grid-template-columns: repeat(${COLS}, ${TILE_W}px);
-    grid-template-rows: repeat(${ROWS}, ${TILE_H}px);
-  }
-
-  /* A revealed tile is simply nothing — the plate shows through. */
-  .tile {
-    background: transparent;
-  }
-
-  /* An unrevealed tile is a 25% ink stipple over white. The original 12%
-     white-over-image ghost was invisible on the panel — reflective e-ink
-     has no backlight, so pale greys collapse toward white. A pattern made
-     of full-black pixels survives where a pale tone cannot. */
-  .tile--hidden {
-    background-color: #fff;
-    background-image: repeating-conic-gradient(#000 0% 25%, #fff 0% 100%);
-    background-size: 4px 4px;
-    opacity: 0.94;
+    left: ${REMINDER_CARD.x}px;
+    top: ${REMINDER_CARD.y}px;
+    width: ${REMINDER_CARD.w}px;
+    height: ${REMINDER_CARD.h}px;
+    background: #fff;
+    border: 3px solid #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 16px;
+    text-align: center;
   }
 </style>`;
 
 // ── The page ───────────────────────────────────────────────────────────────
 
 export function buildView(scene, { debug = false } = {}) {
-  // Twelve cells in reading order. `scene.revealed` is a Set of the grid
-  // positions that are uncovered right now.
-  let tiles = "";
-  for (let i = 0; i < TILES; i++) {
-    const hidden = scene.revealed.has(i) ? "" : " tile--hidden";
-    tiles += `<div class="tile${hidden}"></div>`;
-  }
+  // The whole plate, every refresh. The tile grid that used to sit over this
+  // is parked behind REVEAL_ENABLED in scene.js — see the note there.
+  const reminder = scene.reminder
+    ? `<div class="scene__reminder">${escapeHtml(scene.reminder)}</div>`
+    : "";
 
   // The encouragement goes in the title bar's left slot, the date on the
   // right — the same two-slot pattern art-dashboard already uses, so the
@@ -109,7 +98,6 @@ export function buildView(scene, { debug = false } = {}) {
          ${escapeHtml(scene.local.dateKey)}
          ${String(scene.local.hour).padStart(2, "0")}:${String(scene.local.minute).padStart(2, "0")}
          · ${escapeHtml(scene.plate)}
-         · ${scene.revealedCount}/${TILES}
        </div>`
     : "";
 
@@ -119,8 +107,8 @@ export function buildView(scene, { debug = false } = {}) {
         ${debugBar}
         <img class="scene__plate"
              src="${escapeHtml(scene.plateUrl)}"
-             alt="The Boulder Flatirons at ${escapeHtml(scene.plate)}" />
-        <div class="scene__tiles">${tiles}</div>
+             alt="The Boulder Flatirons, ${escapeHtml(scene.time)}, ${escapeHtml(scene.weather)}" />
+        ${reminder}
       </div>
     </div>
     ${titleBar}
@@ -158,11 +146,6 @@ export function buildMarkupResponse(scene, options) {
     weekday: scene.local.weekday,
     date_long: scene.local.longDate,
     date: scene.local.dateKey,
-    revealed_count: scene.revealedCount,
-    tiles: Array.from({ length: TILES }, (_, i) => ({
-      index: i,
-      revealed: scene.revealed.has(i),
-    })),
 
     // ── For rendering without a template ──────────────────────────────────
     //

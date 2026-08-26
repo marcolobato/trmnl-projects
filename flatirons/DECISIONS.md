@@ -177,3 +177,75 @@ quietly doing that at 800×432.
 **The general lesson:** the framework already calculates this. Hardcoding a
 height means maintaining a number it owns, and getting it wrong by 12px is
 what pushed the title bar off-screen in the first place.
+
+---
+
+## 11 · The tile reveal is parked, not removed
+
+**Brief said:** twelve tiles in a 4×3 grid, revealing one per interval, with
+ghosting for unrevealed tiles. This was the plugin's headline mechanic.
+
+**We do:** ship the full plate every refresh. `REVEAL_ENABLED = false` in
+`scene.js`; the order, pacing and clock arithmetic are untouched behind it.
+
+**Why:** over a composed naturalistic photograph the grid read as a **render
+fault**, not as anticipation. Someone glancing at the panel saw a broken
+image rather than a picture arriving — a fatal reading for an object meant to
+sit on a wall unexplained. The Minesweeper feeling depended on the underlying
+image being *graphic*; a photograph doesn't grant it.
+
+It was also solving a problem that no longer exists. The reveal was invented
+to make each day look different. Time-of-day and weather now do that, and do
+it without spending the image. The mechanic was costing the photograph and
+returning variation we already had.
+
+**What stays**, because it was never really about tiles:
+
+- the zone mask and weather compositing
+- the reminder card geometry — now measured against the composition rather
+  than snapped to a grid cell. `REMINDER_CARD` is a rectangle verified to sit
+  100% inside the pasture zone, the brightest and least detailed area, so
+  text has maximum contrast and covers nothing that matters
+- `revealOrder`, `revealCount`, `nextRevealAt`, and the 06:00–21:00 pacing
+
+**What was only ever scaffolding for tiling, and is now gone:**
+
+| Removed | What it was for |
+|---|---|
+| `.scene__tiles` grid CSS | positioning 12 covers |
+| `.tile` / `.tile--hidden` | the stipple treatment for unrevealed cells |
+| `tiles[]` in the JSON payload | feeding the template's cover loop |
+| `{% for tile in tiles %}` | drawing the covers |
+| `revealed_count` in the payload | only ever displayed alongside tiles |
+
+**One constraint quietly lifted.** The art area is 780×420 partly because
+both divide cleanly by the grid — 780/4 = 195, 420/3 = 140. With no grid,
+that no longer binds. The dimensions stay because they match the framework's
+computed art area 1:1 and the plate must never be rescaled, but a future
+change to the art size is no longer restricted to multiples of twelve.
+
+**Worth revisiting** in a form that doesn't cut the composition into squares:
+a horizontal wipe following the light, or a reveal shaped by the terrain
+itself. The scheduling logic is the reusable part, which is why it is parked
+rather than deleted. The old template is kept verbatim at
+`flatirons/parked/template-reveal.liquid`.
+
+---
+
+## 12 · Dusk was rendering as midday
+
+Reported from the device: a 6:43pm preview showed a midday-bright sky.
+
+**Not a clock bug.** Verified: 18:43 Denver resolves correctly through
+`Intl` and selects `dusk-clear`. The fault was in the tuning — dusk sky sat
+at **67.5%** luminance against day's **72.6%**, five points apart, so the
+plate read as noon.
+
+Twilight is mostly a *sky* event; the land holds its warmth longer than the
+sky holds its light. Dusk sky now drops to **43.1%**, with the land lifted
+slightly to pay for the ink the darker sky costs.
+
+    sky luminance:  dawn 53.3%   day 72.6%   dusk 43.1%   night 14.2%
+
+The lesson is that per-zone luminance needed to be *measured*, not eyeballed
+from a thumbnail — the numbers made an invisible five-point gap obvious.
