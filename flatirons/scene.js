@@ -30,9 +30,11 @@ export const TIME_ZONE = "America/Denver";
 //   width  = screen-w - (gap * 2)              = 800 - 20 = 780
 //   height = screen-h - (gap * 2) - title-bar  = 480 - 20 - 40 = 420
 //
-// with --gap 10px and --title-bar-height 40px. Both divide cleanly by the
-// grid: 780/4 = 195, 420/3 = 140, so tiles land on whole pixels and their
-// edges can't shimmer against the dither.
+// with --gap 10px and --title-bar-height 40px.
+//
+// These also divide cleanly by the old tile grid (780/4 = 195, 420/3 = 140),
+// but with the reveal parked that no longer constrains anything — see
+// DECISIONS.md #11 before assuming a future art size must be a multiple of 12.
 //
 // The plates are cut to exactly this size so the browser never rescales them
 // — resampling an ordered dither is what turns it to mush.
@@ -212,18 +214,111 @@ export function nextRevealAt(minutes) {
   return START_MIN + shown * SLOT;
 }
 
+// ── Where the sun actually is ──────────────────────────────────────────────
+//
+// Fixed clock hours were wrong, and wrong in a way that only shows up months
+// later. Sunset in Boulder swings from about 16:40 in December to 20:30 in
+// June — nearly four hours. A hardcoded "dusk starts at 17:00" is roughly
+// right in June and completely wrong in December, where 17:00 is already
+// dark and "golden hour won't wait" is nonsense.
+//
+// This is the NOAA solar position calculation, trimmed to sunrise and sunset.
+// No API and no dependency: the sun's position is a function of date and
+// latitude, which is exactly the kind of thing this plugin already computes
+// rather than fetches. Checked against reality — Dec 21 sunset comes out at
+// 16:39 against an actual 16:38, Jun 21 at 20:33 against 20:32.
+
+const LATITUDE = 40.015;    // Boulder, Colorado
+const LONGITUDE = -105.2705;
+const RAD = Math.PI / 180;
+
+// Day of year from the LOCAL date, not the UTC one. After 6pm in Denver it is
+// already tomorrow in UTC, and using that would compute the wrong day's sun
+// every evening. Only a minute or two of error — sunset moves that much per
+// day — but it would be a bug that only ever appears after dark, which is the
+// worst kind to go looking for later.
+function dayOfYear(dateKey) {
+  const [y, m, d] = dateKey.split("-").map(Number);
+  return Math.floor((Date.UTC(y, m - 1, d) - Date.UTC(y, 0, 0)) / 86400000);
+}
+
+// Sunrise and sunset as fractional hours in Denver local time, e.g. 19.75.
+export function sunTimes(date) {
+  const local = localParts(date);
+  const n = dayOfYear(local.dateKey);
+  const [ly, lm, ld] = local.dateKey.split("-").map(Number);
+  const g = ((2 * Math.PI) / 365) * (n - 1 + 0.5); // fractional year
+
+  // Equation of time: the sun runs up to ~16 minutes fast or slow against
+  // the clock, because Earth's orbit is elliptical and tilted.
+  const eq =
+    229.18 *
+    (0.000075 + 0.001868 * Math.cos(g) - 0.032077 * Math.sin(g)
+      - 0.014615 * Math.cos(2 * g) - 0.040849 * Math.sin(2 * g));
+
+  const dec =
+    0.006918 - 0.399912 * Math.cos(g) + 0.070257 * Math.sin(g)
+    - 0.006758 * Math.cos(2 * g) + 0.000907 * Math.sin(2 * g)
+    - 0.002697 * Math.cos(3 * g) + 0.00148 * Math.sin(3 * g);
+
+  // 90.833° rather than 90° accounts for atmospheric refraction and the
+  // sun's disc having width — sunset is when the last edge disappears.
+  const cosHa =
+    Math.cos(90.833 * RAD) / (Math.cos(LATITUDE * RAD) * Math.cos(dec))
+    - Math.tan(LATITUDE * RAD) * Math.tan(dec);
+
+  // Above the Arctic circle this has no solution. Boulder never hits it, but
+  // returning something sane beats returning NaN if the location ever moves.
+  if (cosHa > 1) return { sunrise: 12, sunset: 12 };   // sun never rises
+  if (cosHa < -1) return { sunrise: 0, sunset: 24 };   // never sets
+
+  const ha = Math.acos(cosHa) / RAD;
+  const toLocal = (utcMinutes) => {
+    const at = new Date(Date.UTC(ly, lm - 1, ld, 0, Math.round(utcMinutes)));
+    return localParts(at).clock;
+  };
+
+  return {
+    sunrise: toLocal(720 - 4 * (LONGITUDE + ha) - eq),
+    sunset: toLocal(720 - 4 * (LONGITUDE - ha) - eq),
+  };
+}
+
+// ── Which phase of the day it is ───────────────────────────────────────────
+//
+// Six phases, all measured against the sun rather than the clock. "Golden
+// hour" now means the actual golden hour: the 75 minutes before sunset and
+// the half hour after, wherever those land in the calendar.
+
+export function sunPhase(clock, sun) {
+  const noon = (sun.sunrise + sun.sunset) / 2;
+  if (clock < sun.sunrise - 0.75) return "night";
+  if (clock < sun.sunrise + 1.0) return "firstlight";
+  if (clock < noon - 1.5) return "morning";
+  if (clock < noon + 1.5) return "midday";
+  if (clock < sun.sunset - 1.25) return "afternoon";
+  if (clock < sun.sunset + 0.5) return "golden";
+  return "night";
+}
+
 // ── Which plate is showing ─────────────────────────────────────────────────
 //
 // Four lighting states. Only four, because the panel has a handful of usable
 // tones — more states would spend the whole tonal range on differences
-// nobody can see.
+// nobody can see. Several phases share a plate; the words are finer-grained
+// than the picture because words are cheap and tones are not.
 
-export function timeFor(clock) {
-  if (clock < 5.5) return "night";
-  if (clock < 8) return "dawn";
-  if (clock < 17) return "day";
-  if (clock < 20.5) return "dusk";
-  return "night";
+const PHASE_PLATE = {
+  night: "night",
+  firstlight: "dawn",
+  morning: "day",
+  midday: "day",
+  afternoon: "day",
+  golden: "dusk",
+};
+
+export function timeFor(clock, sun) {
+  return PHASE_PLATE[sunPhase(clock, sun)];
 }
 
 // ── Which weather is showing ───────────────────────────────────────────────
@@ -248,8 +343,8 @@ export function weatherFor(clock, dateKey) {
 }
 
 // The plate filename is just the two together.
-export function plateFor(clock, dateKey) {
-  return `${timeFor(clock)}-${weatherFor(clock, dateKey)}`;
+export function plateFor(clock, dateKey, sun) {
+  return `${timeFor(clock, sun)}-${weatherFor(clock, dateKey)}`;
 }
 
 // ── The encouragement ──────────────────────────────────────────────────────
@@ -271,55 +366,53 @@ export function plateFor(clock, dateKey) {
 // at 11pm is bad advice, and the plugin loses its credibility the first time
 // it says something the reader knows is wrong.
 
-export const MESSAGES = [
-  { from: 5, prefix: "Get outside", lines: [
+// Keyed by sun phase rather than clock hour. "Golden hour won't wait" now
+// only appears during the actual golden hour — the 75 minutes before sunset —
+// wherever that falls in the calendar, instead of at a fixed 17:00 that is
+// already dark for half the year.
+export const MESSAGES = {
+  firstlight: { prefix: "Get outside", lines: [
     "the trail's already awake.",
     "first light's on the slabs.",
     "nobody's on Chautauqua yet.",
   ]},
-  { from: 7, prefix: "Get outside", lines: [
+  morning: { prefix: "Get outside", lines: [
     "boots by the door.",
     "the range isn't going anywhere.",
     "it's better out there.",
   ]},
-  { from: 11, prefix: "Get outside", lines: [
+  midday: { prefix: "Get outside", lines: [
     "the sun's high — go stand in it.",
     "lunch outside counts.",
     "ten minutes on the porch will do.",
   ]},
-  { from: 15, prefix: "Get outside", lines: [
+  afternoon: { prefix: "Get outside", lines: [
     "there's still time for a lap.",
     "the light's getting good.",
     "shoes on.",
   ]},
-  { from: 17, prefix: "Get outside", lines: [
+  golden: { prefix: "Get outside", lines: [
     "golden hour won't wait.",
     "last light's on Bear Peak.",
     "catch the alpenglow.",
   ]},
-  // 20.5 rather than 20 so this lines up with plateFor()'s dusk→night
-  // boundary. Half an hour of "Rest up" over a dusk photograph read as a
-  // mistake, because the picture and the words were disagreeing.
-  { from: 20.5, prefix: "Rest up", lines: [
+  // Night keeps a different prefix. Telling someone to go outside at 11pm is
+  // advice they know is wrong, and a plugin that says one wrong thing loses
+  // credibility for everything else it says.
+  night: { prefix: "Rest up", lines: [
     "the hill's still there tomorrow.",
     "the stars are out over the range.",
     "you'll want the early light.",
   ]},
-];
+};
 
-export function messageFor(clock, dateKey) {
-  // Before the first window opens, we're in last night's window — the one
-  // that started at 20:00 and runs past midnight.
-  let band = MESSAGES[MESSAGES.length - 1];
-  if (clock >= MESSAGES[0].from) {
-    for (const candidate of MESSAGES) {
-      if (clock >= candidate.from) band = candidate;
-    }
-  }
+export function messageFor(clock, dateKey, sun) {
+  const phase = sunPhase(clock, sun);
+  const band = MESSAGES[phase];
 
-  // Seeded by date AND by which window we're in, so the line is stable while
-  // you're standing in front of it but different tomorrow.
-  const seed = hashString(`${dateKey}|${band.from}`);
+  // Seeded by date AND phase, so the line is stable while you're standing in
+  // front of it but different tomorrow.
+  const seed = hashString(`${dateKey}|${phase}`);
   return `${band.prefix}, ${band.lines[seed % band.lines.length]}`;
 }
 
@@ -331,6 +424,7 @@ export function messageFor(clock, dateKey) {
 // works standalone.
 export function buildScene(date, { plateBase = PLATE_BASE } = {}) {
   const local = localParts(date);
+  const sun = sunTimes(date);
 
   // With the reveal parked, every tile is "revealed" — which is just another
   // way of saying the whole plate ships. The scheduling call is still made so
@@ -345,11 +439,13 @@ export function buildScene(date, { plateBase = PLATE_BASE } = {}) {
 
   return {
     local,
-    plate: plateFor(local.clock, local.dateKey),
-    time: timeFor(local.clock),
+    plate: plateFor(local.clock, local.dateKey, sun),
+    time: timeFor(local.clock, sun),
+    phase: sunPhase(local.clock, sun),
+    sun,
     weather: weatherFor(local.clock, local.dateKey),
-    plateUrl: `${plateBase}/${plateFor(local.clock, local.dateKey)}.png`,
-    message: messageFor(local.clock, local.dateKey),
+    plateUrl: `${plateBase}/${plateFor(local.clock, local.dateKey, sun)}.png`,
+    message: messageFor(local.clock, local.dateKey, sun),
     order,
     revealed,
     revealedCount: shown,

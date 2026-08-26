@@ -249,3 +249,43 @@ slightly to pay for the ink the darker sky costs.
 
 The lesson is that per-zone luminance needed to be *measured*, not eyeballed
 from a thumbnail — the numbers made an invisible five-point gap obvious.
+
+---
+
+## 13 · Time of day follows the sun, not the clock
+
+Reported from the device: "golden hour won't wait" showing after dark.
+
+The phase boundaries were fixed clock hours — dusk 17:00 to 20:30. Sunset in
+Boulder swings from about **16:40 in December to 20:30 in June**, nearly four
+hours, so a fixed window is roughly right for one month of the year and wrong
+for the rest. In August it kept saying "golden hour" for 45 minutes after
+sunset; in December it would have said it at 17:00, twenty minutes after dark.
+
+`sunTimes()` now computes sunrise and sunset from the NOAA solar position
+formula for Boulder's latitude. No API and no dependency — the sun's position
+is a function of date and place, exactly the kind of thing this plugin already
+computes rather than fetches. Checked against reality:
+
+    Dec 21   computed 16:39   actual 16:38
+    Jun 21   computed 20:33   actual 20:32
+    Aug 25   computed 19:45   actual 19:47
+
+Six phases, all measured against the sun:
+
+    night        before sunrise - 45min
+    firstlight   sunrise - 45min  ->  sunrise + 1h
+    morning      sunrise + 1h     ->  solar noon - 1.5h
+    midday       noon - 1.5h      ->  noon + 1.5h
+    afternoon    noon + 1.5h      ->  sunset - 1.25h
+    golden       sunset - 1.25h   ->  sunset + 30min
+    night        after
+
+Several phases share a plate — the words are finer-grained than the picture,
+because words are cheap and tones are not.
+
+**One subtlety worth keeping.** `dayOfYear` reads the LOCAL date, not the UTC
+one. After 6pm in Denver it is already tomorrow in UTC, so using that would
+compute the wrong day's sun every evening. The error is only a minute or two,
+but it is a bug that appears exclusively after dark — the worst kind to go
+hunting for months later.
