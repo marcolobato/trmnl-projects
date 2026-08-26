@@ -71,12 +71,15 @@ export const STYLES = `<style>
     background: transparent;
   }
 
-  /* An unrevealed tile is the artwork at roughly 12% strength: white laid
-     over it at 88%. Blank white was too abrupt and a checkerboard veil
-     fought the artwork, so what's left is a ghost of what's coming. */
+  /* An unrevealed tile is a 25% ink stipple over white. The original 12%
+     white-over-image ghost was invisible on the panel — reflective e-ink
+     has no backlight, so pale greys collapse toward white. A pattern made
+     of full-black pixels survives where a pale tone cannot. */
   .tile--hidden {
-    background: #fff;
-    opacity: 0.88;
+    background-color: #fff;
+    background-image: repeating-conic-gradient(#000 0% 25%, #fff 0% 100%);
+    background-size: 4px 4px;
+    opacity: 0.94;
   }
 </style>`;
 

@@ -83,11 +83,24 @@
   /* Revealed: draw nothing, let the photograph through. */
   .tile { background: transparent; }
 
-  /* Unrevealed: the artwork at ~12% strength. Blank white was too abrupt,
-     a checkerboard veil fought the artwork. Lower to 0.80 for a stronger
-     ghost if 12% reads as blank on the device. */
+  /* Unrevealed: a 25% ink stipple over white.
+
+     The original ~12% white-over-image ghost was invisible on the panel.
+     Reflective e-ink has no backlight, so pale greys collapse toward white
+     and simply have nowhere to live. A PATTERN survives because it is built
+     from full-black pixels with gaps — the panel renders each at full
+     strength and the eye averages them into tone. Same reason the whole
+     plugin is dithered rather than grey.
+
+     TWO KNOBS to tune on the device:
+       background-size  4px = one 2px dot per 4px cell (25% ink).
+                        Larger = coarser and lighter. 6px is noticeably softer.
+       opacity          1 = fully covered. Drop to 0.85 to let a ghost of the
+                        photograph back through. */
   .tile--hidden {
-    background: #fff;
-    opacity: 0.88;
+    background-color: #fff;
+    background-image: repeating-conic-gradient(#000 0% 25%, #fff 0% 100%);
+    background-size: 4px 4px;
+    opacity: 0.94;
   }
 </style>
