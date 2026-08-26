@@ -133,9 +133,13 @@ reviewed but are not wired up yet.
 
 ## Open / unresolved
 
-- **Does the panel do grey, or only 1-bit?** The Met render shows pure black
-  dots on white, suggesting 1-bit. If so, our 8 flat tones still need a final
-  conversion somewhere, and #6 needs revisiting. **Untested on hardware.**
+- ~~**Does the panel do grey, or only 1-bit?**~~ **RESOLVED on hardware.**
+  With the plugin's presentation set to **4-bit**, the dither renders crisp on
+  the device — the panel reproduces our 8 pre-dithered tones directly, with no
+  second conversion. Decision #6 stands: no `image-dither`, plates stay
+  pre-dithered. 1-bit and "black and white 1-bit" are both wrong for this
+  plugin; a hard threshold makes the mountain vanish entirely, since every
+  mid-grey collapses to white.
 - **The weather zone mask is approximate** — a feathered diagonal along the
   treeline. A hand-traced three-zone mask (sky / massif / pasture) would
   decouple sky from mountain, which currently move together.
