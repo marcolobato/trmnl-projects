@@ -197,36 +197,52 @@ export function plateFor(clock) {
 // tones are not. Boulder-specific on purpose: "take a wellness break" reads
 // as filler by the third day, a named trail doesn't.
 
+// Each window has a PREFIX and a set of endings. The message is the two
+// joined with a comma, so every line states the ask plainly before the
+// flavour — "Get outside, golden hour won't wait" rather than trusting the
+// reader to infer it from a mountain photograph.
+//
+// The prefix is a separate field rather than baked into each line so it can
+// become a user setting later: one TRMNL form field replacing "Get outside"
+// with whatever someone is actually chasing that season.
+//
+// Night keeps a different prefix on purpose. Telling someone to go outside
+// at 11pm is bad advice, and the plugin loses its credibility the first time
+// it says something the reader knows is wrong.
+
 export const MESSAGES = [
-  { from: 5, lines: [
-    "The trail's already awake.",
-    "First light on the slabs.",
-    "Nobody's on Chautauqua yet.",
+  { from: 5, prefix: "Get outside", lines: [
+    "the trail's already awake.",
+    "first light's on the slabs.",
+    "nobody's on Chautauqua yet.",
   ]},
-  { from: 7, lines: [
-    "Get out there.",
-    "Boots by the door.",
-    "The range isn't going anywhere. You should.",
+  { from: 7, prefix: "Get outside", lines: [
+    "boots by the door.",
+    "the range isn't going anywhere.",
+    "it's better out there.",
   ]},
-  { from: 11, lines: [
-    "Sun's high. Go stand in it.",
-    "Lunch outside counts.",
-    "Ten minutes on the porch.",
+  { from: 11, prefix: "Get outside", lines: [
+    "the sun's high — go stand in it.",
+    "lunch outside counts.",
+    "ten minutes on the porch will do.",
   ]},
-  { from: 15, lines: [
-    "Still time for a lap.",
-    "The light's getting good.",
-    "Shoes on.",
+  { from: 15, prefix: "Get outside", lines: [
+    "there's still time for a lap.",
+    "the light's getting good.",
+    "shoes on.",
   ]},
-  { from: 17, lines: [
-    "Golden hour won't wait.",
-    "See you outside.",
-    "Last light on Bear Peak.",
+  { from: 17, prefix: "Get outside", lines: [
+    "golden hour won't wait.",
+    "last light's on Bear Peak.",
+    "catch the alpenglow.",
   ]},
-  { from: 20, lines: [
-    "Rest up. The hill's still there.",
-    "Tomorrow, then.",
-    "Stars are out over the range.",
+  // 20.5 rather than 20 so this lines up with plateFor()'s dusk→night
+  // boundary. Half an hour of "Rest up" over a dusk photograph read as a
+  // mistake, because the picture and the words were disagreeing.
+  { from: 20.5, prefix: "Rest up", lines: [
+    "the hill's still there tomorrow.",
+    "the stars are out over the range.",
+    "you'll want the early light.",
   ]},
 ];
 
@@ -243,7 +259,7 @@ export function messageFor(clock, dateKey) {
   // Seeded by date AND by which window we're in, so the line is stable while
   // you're standing in front of it but different tomorrow.
   const seed = hashString(`${dateKey}|${band.from}`);
-  return band.lines[seed % band.lines.length];
+  return `${band.prefix}, ${band.lines[seed % band.lines.length]}`;
 }
 
 // ── Everything the page needs, from one instant ────────────────────────────
