@@ -33,9 +33,9 @@ export function escapeHtml(text) {
 // the framework has no opinion about.
 
 export const STYLES = `<style>
-  /* The art area. Fixed at exactly 800x432 rather than a percentage: this
-     is a single known device, and the tile grid has to land on whole pixels
-     or the covers shimmer against the dither underneath. */
+  /* The art area, 780x420 — what the framework leaves after the 10px gap
+     and the 40px title bar. Fixed pixels because the tile grid has to land
+     on whole pixels or the covers shimmer against the dither underneath. */
   .scene {
     position: relative;
     width: ${ART_W}px;
@@ -151,6 +151,8 @@ export function buildMarkupResponse(scene, options) {
     // Twelve small objects, each already knowing its own answer, keeps the
     // template to a single loop with no lookups.
     plate: scene.plate,
+    time_of_day: scene.time,
+    weather: scene.weather,
     plate_url: scene.plateUrl,
     message: scene.message,
     weekday: scene.local.weekday,

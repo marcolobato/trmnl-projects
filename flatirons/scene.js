@@ -46,10 +46,13 @@ export const TILES = COLS * ROWS; // 12
 export const TILE_W = ART_W / COLS; // 195
 export const TILE_H = ART_H / ROWS; // 140
 
-// The four lighting states. Named here so both the plate route and the
-// scene builder agree on what's valid — and so the plate route can reject
-// anything else rather than proxying arbitrary URLs.
-export const PLATES = ["dawn", "day", "dusk", "night"];
+// Four lighting states × three weather states = twelve plates, named
+// "<time>-<weather>.png". Listed here so the plate route and the scene
+// builder agree on what's valid, and so the route can reject anything else
+// rather than proxying arbitrary URLs.
+export const TIMES = ["dawn", "day", "dusk", "night"];
+export const WEATHERS = ["clear", "sunbreak", "stormlight"];
+export const PLATES = TIMES.flatMap((t) => WEATHERS.map((w) => `${t}-${w}`));
 
 // Fallback location for the plates. Both runtimes normally override this
 // with their OWN origin, so the images are served from the same host as the
@@ -183,12 +186,38 @@ export function nextRevealAt(minutes) {
 // tones — more states would spend the whole tonal range on differences
 // nobody can see.
 
-export function plateFor(clock) {
+export function timeFor(clock) {
   if (clock < 5.5) return "night";
   if (clock < 8) return "dawn";
   if (clock < 17) return "day";
   if (clock < 20.5) return "dusk";
   return "night";
+}
+
+// ── Which weather is showing ───────────────────────────────────────────────
+//
+// Two moods a day: one before 13:00, one after. A single mood all day makes
+// every afternoon a rerun of its own morning; four would change often enough
+// that no look ever settles.
+//
+// Seeded rather than fetched. There is no weather API in v1, and there
+// doesn't need to be — what the picture needs is for each day to have its own
+// character, not to be accurate. A real forecast can replace this function
+// later without anything else changing.
+//
+// Clear is weighted to roughly half the slots. Storm light is striking, and
+// striking every day is just the new normal.
+const WEATHER_WEIGHTS = ["clear", "clear", "clear", "sunbreak", "sunbreak", "stormlight"];
+
+export function weatherFor(clock, dateKey) {
+  const half = clock < 13 ? "am" : "pm";
+  const roll = hashString(`${dateKey}|weather|${half}`) % WEATHER_WEIGHTS.length;
+  return WEATHER_WEIGHTS[roll];
+}
+
+// The plate filename is just the two together.
+export function plateFor(clock, dateKey) {
+  return `${timeFor(clock)}-${weatherFor(clock, dateKey)}`;
 }
 
 // ── The encouragement ──────────────────────────────────────────────────────
@@ -280,8 +309,10 @@ export function buildScene(date, { plateBase = PLATE_BASE } = {}) {
 
   return {
     local,
-    plate: plateFor(local.clock),
-    plateUrl: `${plateBase}/${plateFor(local.clock)}.png`,
+    plate: plateFor(local.clock, local.dateKey),
+    time: timeFor(local.clock),
+    weather: weatherFor(local.clock, local.dateKey),
+    plateUrl: `${plateBase}/${plateFor(local.clock, local.dateKey)}.png`,
     message: messageFor(local.clock, local.dateKey),
     order,
     revealed,
