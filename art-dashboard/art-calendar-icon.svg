@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <title>Art Calendar</title>
+  <!-- Paintbrush mark for the TRMNL plugin icon.
+
+       Three shapes and one rotation, deliberately. TRMNL shows this at
+       roughly 64px in the plugin list, so anything finer than this would
+       disappear. Every number below is meant to be adjusted:
+
+         rotate(-18 ...)  the tilt — fills the square instead of leaving
+                          empty air either side of a vertical brush
+         path             the bristle triangle
+         rect rx          how soft the ferrule and handle corners read
+
+       Pure black on transparent, which suits the 1-bit e-ink world this
+       plugin lives in. -->
+  <g transform="rotate(-18 256 256)" fill="#000000">
+    <!-- bristles -->
+    <path d="M256 60 L348 246 L164 246 Z"/>
+    <!-- ferrule -->
+    <rect x="164" y="246" width="184" height="66" rx="10"/>
+    <!-- handle -->
+    <rect x="212" y="330" width="88" height="146" rx="44"/>
+  </g>
+</svg>
