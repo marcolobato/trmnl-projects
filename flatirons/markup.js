@@ -72,6 +72,21 @@ export const STYLES = `<style>
     padding: 0 16px;
     text-align: center;
   }
+
+  /* Both title-bar labels at full black.
+
+     The framework styles .title as primary text and .instance as SECONDARY,
+     which is why the date reads dimmer than the message. That is a deliberate
+     hierarchy, not a bug — so overriding it needs !important rather than a
+     specificity trick: the rule we are beating is
+     `.trmnl .screen--4bit .title_bar .instance`, four classes deep.
+
+     On reflective e-ink a secondary grey loses most of its separation from
+     the paper, so the date was closer to invisible than to quiet. */
+  .title_bar .title,
+  .title_bar .instance {
+    color: #000 !important;
+  }
 </style>`;
 
 // ── The page ───────────────────────────────────────────────────────────────
