@@ -70,4 +70,21 @@
   .title_bar .instance {
     color: #000 !important;
   }
+
+  /* Breathing room in the title bar.
+
+     The framework computes its padding as
+
+       padding: 0 calc(var(--gap) * var(--framework-layout-title-bar-padding-factor, 1))
+
+     and never assigns that factor — it exists purely as an extension point,
+     defaulting to 1, which gives 10px. The bar's corner radius is also 10px,
+     so the date began exactly where the curve ended and read as flush.
+
+     Setting the factor rather than overriding padding directly means no
+     !important, symmetry on both sides for free, and the value still tracks
+     --gap if the bleed-margin setting ever changes. */
+  .screen {
+    --framework-layout-title-bar-padding-factor: 2;
+  }
 </style>
