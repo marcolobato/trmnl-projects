@@ -24,39 +24,32 @@
 </div>
 
 <style>
-  /* TRMNL makes .layout a flex row, and has a global rule giving every child
-     "flex: 1 1 0%". That was sizing the picture narrower than its space and
-     leaving blank paper on one side. Block layout takes flex out of it.
+  /* Only padding is changed here.
 
-     Only the SIDE margins are zeroed. TRMNL sets a bottom margin here, and
-     that is what makes the gap between the picture and the bar below. */
-  .layout {
-    display: block;
-    padding: 0;
-    margin-left: 0;
-    margin-right: 0;
-  }
+     Do NOT add "display: block" or "margin: 0" to .layout. The picture takes
+     its height from TRMNL's flex layout, and its bottom margin is what makes
+     the gap above the bar. Setting either one pushed the picture down out of
+     sight. Both were tried and both broke it. */
+  .layout { padding: 0; }
 
   .scene {
-    display: block;
     position: relative;
     width: 100%;
     height: 100%;
-    margin: 0;
     overflow: hidden;
   }
 
-  /* "contain" shows the whole picture. "cover" would fill the space but cut
-     off the edges, which is what was trimming the photo.
+  /* "cover" fills the space completely. If the picture and the space are
+     slightly different shapes it trims a sliver off the edges, which looks
+     better than the blank paper that "contain" leaves.
 
-     No "image-dither" class on the image: it already has the dot pattern
-     baked in, and letting TRMNL add its own on top makes a muddy mess. */
+     No "image-dither" class: the picture already has its dot pattern baked
+     in, and letting TRMNL add its own on top makes a muddy mess. */
   .scene__plate {
     display: block;
     width: 100%;
     height: 100%;
-    margin: 0;
-    object-fit: contain;
+    object-fit: cover;
     object-position: center;
     image-rendering: pixelated;
   }
