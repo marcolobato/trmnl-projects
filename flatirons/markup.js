@@ -88,21 +88,25 @@ export const STYLES = `<style>
     color: #000 !important;
   }
 
-  /* Breathing room in the title bar.
+  /* Title-bar side padding, set explicitly rather than through the
+     framework's --framework-layout-title-bar-padding-factor variable.
 
-     The framework computes its padding as
+     The variable route is tidier, but it only works if the element we set it
+     on is an ancestor of .title_bar in TRMNL's real DOM — and TRMNL wraps our
+     markup in its own .screen, so that is not guaranteed. An explicit value
+     with !important does not care about the wrapper.
 
-       padding: 0 calc(var(--gap) * var(--framework-layout-title-bar-padding-factor, 1))
+     WHERE THE PIXELS COME FROM (all measured from the framework CSS):
+       .screen     padding: var(--gap)   -> 10px, device default
+       .layout     padding: 0            -> device default for the full view
+       .title_bar  padding: 0 <this>
 
-     and never assigns that factor — it exists purely as an extension point,
-     defaulting to 1, which gives 10px. The bar's corner radius is also 10px,
-     so the date began exactly where the curve ended and read as flush.
-
-     Setting the factor rather than overriding padding directly means no
-     !important, symmetry on both sides for free, and the value still tracks
-     --gap if the bleed-margin setting ever changes. */
-  .screen {
-    --framework-layout-title-bar-padding-factor: 2;
+     So the art sits 10px from the physical edge, and the text sits
+     10px + this value. 16px puts the text clear of the bar's 10px corner
+     radius while keeping both sides identical. */
+  .title_bar {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
   }
 </style>`;
 
