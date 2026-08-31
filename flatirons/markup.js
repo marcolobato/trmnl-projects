@@ -48,10 +48,10 @@ export const STYLES = `<style>
     width: ${ART_W}px;
     height: ${ART_H}px;
 
-    /* The plate is ALREADY dithered to 8 tones. Note there is no
-       "image-dither" class on it — running TRMNL's dithering over an
-       already-dithered image would beat one pattern against the other and
-       produce moire. This is the one place we opt out of the framework. */
+    /* "contain" shows the whole picture; "cover" would crop the edges.
+       No "image-dither" class either: the picture already has its dot
+       pattern baked in, and adding TRMNL's on top makes a muddy mess. */
+    object-fit: contain;
     image-rendering: pixelated;
   }
 
