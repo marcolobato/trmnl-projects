@@ -24,12 +24,21 @@
 </div>
 
 <style>
-  .layout { padding: 0; }
+  /* TRMNL makes .layout a flex row, and has a global rule giving every child
+     "flex: 1 1 0%". That was sizing the picture narrower than its space and
+     leaving blank paper on one side. Block layout takes flex out of it. */
+  .layout {
+    display: block;
+    padding: 0;
+    margin: 0;
+  }
 
   .scene {
+    display: block;
     position: relative;
     width: 100%;
     height: 100%;
+    margin: 0;
     overflow: hidden;
   }
 
@@ -42,7 +51,9 @@
     display: block;
     width: 100%;
     height: 100%;
+    margin: 0;
     object-fit: contain;
+    object-position: center;
     image-rendering: pixelated;
   }
 
