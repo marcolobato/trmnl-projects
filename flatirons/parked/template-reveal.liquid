@@ -26,34 +26,39 @@
 
   Nesting is fixed by the framework:
     screen -> view view--full -> layout, with title_bar a SIBLING of layout.
+
+  ...but only the LAST TWO are ours to write. TRMNL supplies .screen and an
+  outer .view--full itself. A second .screen here nests one inside the other,
+  and because both carry 10px of padding the art starts 20px in from the left
+  while the right-hand margin goes to zero. That was the white-band bug in
+  template.liquid — fixed there, and fixed here too so restoring this file
+  does not bring it back. See DECISIONS.md #14.
 {% endcomment %}
 
-<div class="screen">
-  <div class="view view--full">
+<div class="view view--full">
 
-    <div class="layout">
-      <div class="scene">
+  <div class="layout">
+    <div class="scene">
 
-        {% comment %} No "image-dither" class: the plate is already dithered
-        to 8 tones, and dithering it again beats one pattern against another
-        and produces moire. {% endcomment %}
-        <img class="scene__plate"
-             src="{{ plate_url }}"
-             alt="The Boulder Flatirons at {{ plate }}, {{ revealed_count }} of 12 tiles uncovered" />
+      {% comment %} No "image-dither" class: the plate is already dithered
+      to 8 tones, and dithering it again beats one pattern against another
+      and produces moire. {% endcomment %}
+      <img class="scene__plate"
+           src="{{ plate_url }}"
+           alt="The Boulder Flatirons at {{ plate }}, {{ revealed_count }} of 12 tiles uncovered" />
 
-        <div class="scene__tiles">
-          {% for tile in tiles %}<div class="tile{% unless tile.revealed %} tile--hidden{% endunless %}"></div>{% endfor %}
-        </div>
-
+      <div class="scene__tiles">
+        {% for tile in tiles %}<div class="tile{% unless tile.revealed %} tile--hidden{% endunless %}"></div>{% endfor %}
       </div>
-    </div>
 
-    <div class="title_bar">
-      <span class="title">{{ message }}</span>
-      <span class="instance">{{ weekday }}</span>
     </div>
-
   </div>
+
+  <div class="title_bar">
+    <span class="title">{{ message }}</span>
+    <span class="instance">{{ weekday }}</span>
+  </div>
+
 </div>
 
 <style>

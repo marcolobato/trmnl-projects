@@ -2,25 +2,41 @@
   Get Outside · Flatirons — paste into TRMNL's markup editor.
   Values come from the plugin's polling URL:
     plate_url  time_of_day  weather  message  date_long
+
+  DO NOT add a <div class="screen"> around this. TRMNL supplies the page
+  wrapper itself — its renderer emits
+
+      <body class="trmnl">
+        <div class="screen">            <- TRMNL's
+          <div class="view view--full"> <- TRMNL's
+            ...our markup goes here...
+
+  so a second .screen here nests one inside the other. Both carry 10px of
+  padding, which is what put a 20px white band down the left while the
+  right-hand margin went to zero and the last 10px of the photo was cut off.
+  That was the "blank space on the left" bug — see DECISIONS.md #14.
+
+  The .view--full below IS kept on purpose. It is harmless when TRMNL also
+  supplies one (same width, so it lines up exactly), and it keeps the picture
+  from collapsing if TRMNL ever hands us a bare .screen — .layout only gets
+  its height from a rule that requires a .view--full ancestor.
 {% endcomment %}
 
-<div class="screen">
-  <div class="view view--full">
+<div class="view view--full">
 
-    <div class="layout">
-      <div class="scene">
-        <img class="image scene__plate"
-             src="{{ plate_url }}"
-             alt="The Boulder Flatirons, {{ time_of_day }}, {{ weather }}" />
-      </div>
+  <div class="layout">
+    <div class="scene">
+      <img class="image scene__plate"
+           src="{{ plate_url }}"
+           alt="The Boulder Flatirons, {{ time_of_day }}, {{ weather }}" />
     </div>
-
-    <div class="title_bar">
-      <span class="title">{{ message }}</span>
-      <span class="instance">{{ date_long }}</span>
-    </div>
-
   </div>
+
+  <div class="title_bar">
+    <span class="title">{{ message }}</span>
+    <span class="instance">{{ date_long }}</span>
+  </div>
+
 </div>
 
 <style>
