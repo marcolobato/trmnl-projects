@@ -1,14 +1,7 @@
 {% comment %}
-  Get Outside · Flatirons — paste this whole file into TRMNL's markup editor.
-
-  Variables from the polling endpoint:
-    plate_url  time_of_day  weather  message  date_long
-
-  Nesting is fixed by the framework:
-    screen -> view view--full -> layout, with title_bar a SIBLING of layout.
-
-  The tile-reveal version of this template is parked at
-  flatirons/parked/template-reveal.liquid — see DECISIONS.md #11.
+  Get Outside · Flatirons — paste into TRMNL's markup editor.
+  Variables: plate_url  time_of_day  weather  message  date_long
+  Reasoning behind each rule below is in flatirons/DECISIONS.md.
 {% endcomment %}
 
 <div class="screen">
@@ -16,9 +9,6 @@
 
     <div class="layout">
       <div class="scene">
-        {% comment %} No "image-dither" class: the plate is already dithered
-        to 8 tones, and dithering it again beats one pattern against another
-        and produces moire. {% endcomment %}
         <img class="image scene__plate"
              src="{{ plate_url }}"
              alt="The Boulder Flatirons, {{ time_of_day }}, {{ weather }}" />
@@ -34,11 +24,6 @@
 </div>
 
 <style>
-  /* Fill whatever the framework gives us. It sizes the layout itself:
-       layout height = screen-h - (gap * 2) - title-bar-height
-     which on an 800x480 device is 480 - 20 - 40 = 420, with the art area
-     780 wide. Percentages keep this right if the gap, the bleed-margin
-     setting, or the device ever changes. */
   .layout { padding: 0; }
 
   .scene {
@@ -48,45 +33,22 @@
     overflow: hidden;
   }
 
+  /* No image-dither class — the plate is pre-dithered and would moire. */
   .scene__plate {
     display: block;
     width: 100%;
     height: 100%;
     object-fit: cover;
-    image-rendering: pixelated;   /* never smooth the dither */
+    image-rendering: pixelated;
   }
 
-  /* Both title-bar labels at full black.
-
-     The framework styles .title as primary text and .instance as SECONDARY,
-     which is why the date reads dimmer than the message. That is a deliberate
-     hierarchy, not a bug — so overriding it needs !important rather than a
-     specificity trick: the rule we are beating is
-     `.trmnl .screen--4bit .title_bar .instance`, four classes deep.
-
-     On reflective e-ink a secondary grey loses most of its separation from
-     the paper, so the date was closer to invisible than to quiet. */
+  /* .instance defaults to a secondary grey that vanishes on e-ink. */
   .title_bar .title,
   .title_bar .instance {
     color: #000 !important;
   }
 
-  /* Title-bar side padding, set explicitly rather than through the
-     framework's --framework-layout-title-bar-padding-factor variable.
-
-     The variable route is tidier, but it only works if the element we set it
-     on is an ancestor of .title_bar in TRMNL's real DOM — and TRMNL wraps our
-     markup in its own .screen, so that is not guaranteed. An explicit value
-     with !important does not care about the wrapper.
-
-     WHERE THE PIXELS COME FROM (all measured from the framework CSS):
-       .screen     padding: var(--gap)   -> 10px, device default
-       .layout     padding: 0            -> device default for the full view
-       .title_bar  padding: 0 <this>
-
-     So the art sits 10px from the physical edge, and the text sits
-     10px + this value. 16px puts the text clear of the bar's 10px corner
-     radius while keeping both sides identical. */
+  /* Art sits 10px from the edge (.screen, device default); text 10 + 16. */
   .title_bar {
     padding-left: 16px !important;
     padding-right: 16px !important;
