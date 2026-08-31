@@ -26,11 +26,15 @@
 <style>
   /* TRMNL makes .layout a flex row, and has a global rule giving every child
      "flex: 1 1 0%". That was sizing the picture narrower than its space and
-     leaving blank paper on one side. Block layout takes flex out of it. */
+     leaving blank paper on one side. Block layout takes flex out of it.
+
+     Only the SIDE margins are zeroed. TRMNL sets a bottom margin here, and
+     that is what makes the gap between the picture and the bar below. */
   .layout {
     display: block;
     padding: 0;
-    margin: 0;
+    margin-left: 0;
+    margin-right: 0;
   }
 
   .scene {
