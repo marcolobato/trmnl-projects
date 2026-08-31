@@ -33,9 +33,13 @@ export function escapeHtml(text) {
 // the framework has no opinion about.
 
 export const STYLES = `<style>
-  /* The art area, 780x420 — what the framework leaves after the 10px gap
-     and the 40px title bar. Fixed pixels so the plate is never rescaled;
-     resampling an ordered dither is what turns it to mush. */
+  /* The plate's own size, 780x420. Fixed pixels so it is never rescaled;
+     resampling an ordered dither is what turns it to mush.
+
+     The box it lands in is 780 x 410.9, not 780 x 420 — see the note on
+     ART_H in scene.js. The extra 9px overflows and is clipped by .layout,
+     which is the same ~4.6px trim off the top and bottom that template.liquid
+     gets from object-fit: cover. Equivalent result, no rescale either way. */
   .scene {
     position: relative;
     width: ${ART_W}px;

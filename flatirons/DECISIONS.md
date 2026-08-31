@@ -150,6 +150,10 @@ reviewed but are not wired up yet.
 
 ## 10 · Bleed margin stays ON, and the art is 780×420
 
+> **Superseded in part by #14.** The width is right. The height is 410.9,
+> not 420 — the framework over-allocates by one `--gap`. The plates stay at
+> 780×420 regardless; #14 explains why.
+
 **Earlier we said:** set "Remove bleed margin" to Yes, so the art could be a
 full 800px wide.
 
@@ -289,3 +293,82 @@ one. After 6pm in Denver it is already tomorrow in UTC, so using that would
 compute the wrong day's sun every evening. The error is only a minute or two,
 but it is a bug that appears exclusively after dark — the worst kind to go
 hunting for months later.
+
+---
+
+## 14 · The white band on the left was a duplicated page wrapper
+
+**Symptom:** a white band down the left of the photo, roughly twice the
+margin on the right, and the picture sitting off-centre in its space.
+
+**Cause:** `template.liquid` opened with its own `<div class="screen">`.
+TRMNL already supplies that. Its renderer builds the page like this
+(`web/views/render_html.erb` in usetrmnl/trmnlp):
+
+    <body class="trmnl">
+      <div class="screen">              <- TRMNL's
+        <div class="view view--full">   <- TRMNL's
+          ...our markup...
+
+so our copy nested a second `.screen` inside the first. `.screen` carries
+`padding: 10px`, so the content box started 20px in from the left instead of
+10px. But `.view--full` has a *fixed* `width: var(--full-w)` — 780px — and
+does not shrink to fit its now-760px parent. So the art started at x=20 and
+ran to x=800, and the outer `.view--full`'s `overflow: hidden` cut the last
+10px of the photo off the right-hand edge.
+
+Measured in a headless browser against the real framework CSS:
+
+                        plate left edge   right margin
+    with the extra .screen        20px            0px   <- 10px of photo lost
+    without it                    10px           10px
+
+**Why the earlier attempts failed.** Both were aimed at `.layout`, which was
+never at fault — the damage was done two levels above it, before `.layout`
+was reached. `display: block` and `margin: 0` only removed the flex sizing
+and the bottom gap that `.layout` legitimately needs.
+
+**The fix:** delete the `.screen` wrapper. `.view--full` is deliberately
+KEPT, even though TRMNL supplies one too. Tested four ways:
+
+    template gives      TRMNL gives           result
+    neither wrapper     screen + view         correct
+    view only           screen + view         correct
+    neither wrapper     screen only           picture collapses to 0px wide
+    view only           screen only           correct
+
+Keeping `.view--full` is correct in both worlds; dropping it is only correct
+in one. `.layout` takes its height from `.trmnl .view--full .layout`, so with
+no `.view--full` ancestor it has no height at all — which is the same
+"picture disappeared" failure we already hit once by hand.
+
+**The art area is 780 × 410.9, not 780 × 420.** The width is right; the
+height is about 9px short of what DECISIONS #10 assumed. The framework
+over-allocates by one `--gap`:
+
+    .layout height   480 - 20 - 40 = 420
+    .layout margin-bottom                10
+    .title_bar                           40
+                                        ---
+                                        470   inside a .view--full of 460
+
+Flex resolves the 10px overflow by shrinking both, so `.layout` lands at
+410.875 and the title bar at 39.125.
+
+**The plates stay at 780 × 420 anyway, and `build_plates.py` is unchanged.**
+`object-fit: cover` picks its scale as max(780/780, 410.9/420) = **exactly
+1.0**, so the plate is drawn pixel-for-pixel and about 4.6px is trimmed off
+the top and bottom. Nothing is resampled — verified by counting tones in the
+render, still the same 7 the plate ships with — so the dither is safe.
+
+Cutting to 780×411 would recover those 9px, but 410.875 is a fractional
+number that only holds on the OG at `--ui-scale: 1`; it moves on any other
+device. A plate that slightly overfills and is cropped by `cover` is the more
+robust of the two. **If the composition ever needs those 9px back, that is
+the reason to revisit — not the white band, which is fixed.**
+
+**One latent consequence, not acted on.** `REMINDER_CARD` is measured in
+780×420 plate space, but `.scene__reminder` is positioned inside `.scene`,
+which is 410.9 tall with the plate offset ~4.6px upward by the centred crop.
+If the reminder card is ever switched on, it will sit ~4.6px low against the
+picture. Harmless today — the card is not rendered.

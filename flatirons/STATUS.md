@@ -43,26 +43,51 @@ Nothing is stored. The whole screen is worked out from the current time:
     Framework CSS          v3.2.0
     Presentation           4-bit      <- important, 1-bit looks broken
 
-## THE OPEN PROBLEM
+## Solved — the white band on the left of the photo
 
-There is blank white space on the left of the picture, and the picture does
-not sit evenly in its space. Some things already ruled out:
+The white band on the left was a **duplicated page wrapper**, not a sizing
+problem. `template.liquid` opened with its own `<div class="screen">`, and
+TRMNL already supplies one. Two nested `.screen`s meant two lots of 10px
+padding, so the art started 20px in from the left — but `.view--full` has a
+fixed 780px width and doesn't shrink, so it ran off the right-hand edge and
+the last 10px of the photo was clipped away.
 
-- Not the "Remove bleed margin" setting — it changes all four sides equally
-- Not the framework overflowing — its own maths is correct (780x420)
-- Not the photo being brighter on the left — confirmed the white has no dots
-  in it, so it is empty space, not snowfield
+    with the extra .screen    left 20px   right 0px   (10px of photo lost)
+    without it                left 10px   right 10px
 
-Two things were tried and both made it worse, so **do not repeat them**:
+The fix is in `template.liquid`: the `.screen` wrapper is gone. `.view--full`
+is deliberately kept — see DECISIONS.md #14 for why removing both is the
+riskier choice.
 
-- `display: block` on `.layout` — pushed the picture down out of sight
-- `margin: 0` on `.layout` — removed the gap between picture and bar
+Both earlier attempts failed because they targeted `.layout`, which was never
+at fault. The damage was done two levels above it.
 
-The current CSS is back to the version that displayed correctly.
+**And the answer to "is the space really 780×420": the width is, the height
+isn't — it is 410.9.** The framework over-allocates by one `--gap`, so flex
+shrinks `.layout` from 420 to 410.875. **The plates stay at 780×420 and
+`build_plates.py` is unchanged**: `object-fit: cover` resolves to a scale of
+exactly 1.0, so the plate is drawn pixel-for-pixel with ~4.6px trimmed top and
+bottom and nothing is resampled. Recutting would only buy back those 9px, at
+the cost of baking in a fractional number that only holds on the OG panel.
 
-Still unknown: whether the space TRMNL gives the picture is really 780x420.
-If it is not, the twelve pictures need recutting to the real size.
-`build_plates.py` does that — change `W, H` at the top and re-run.
+### Checking a layout change without a device
+
+The bug was found by rendering the real markup inside TRMNL's real wrapper
+and measuring, rather than by eye:
+
+1. Get the framework CSS. The pinned URL has **no `v`** in it:
+
+       curl -sL https://usetrmnl.com/css/3.2.0/plugins.css   # works
+       curl -sL https://usetrmnl.com/css/v3.2.0/plugins.css  # 404
+
+2. Wrap the template in what TRMNL's own renderer emits — see DECISIONS.md
+   #14, or `web/views/render_html.erb` in the usetrmnl/trmnlp repo.
+3. Render at 800x480 in headless Chrome and read back
+   `getBoundingClientRect()` for `.layout`, `.scene` and the plate.
+
+That turns "it looks off" into numbers, which is what made the 20px/0px
+asymmetry obvious. Checked against both `3.2.0` (what the plugin pins) and
+`latest`; they measure identically.
 
 ## Things still on the list
 

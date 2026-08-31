@@ -25,12 +25,20 @@
 // evening in production. Same lesson art-dashboard already learned.
 export const TIME_ZONE = "America/Denver";
 
-// The art area is 780x420, not the full 800x480. The framework computes it:
+// The PLATE size, 780x420 — not the full 800x480. The framework leaves:
 //
 //   width  = screen-w - (gap * 2)              = 800 - 20 = 780
 //   height = screen-h - (gap * 2) - title-bar  = 480 - 20 - 40 = 420
 //
 // with --gap 10px and --title-bar-height 40px.
+//
+// The width is exact. The HEIGHT IS NOT — the real box measures 410.9, not
+// 420, because the framework also gives .layout a 10px bottom margin that
+// its own height calc forgets, and flex shrinks .layout to absorb it. The
+// plates stay 420 tall anyway: object-fit: cover then resolves to a scale of
+// exactly 1.0, drawing the plate pixel-for-pixel and trimming ~4.6px off the
+// top and bottom, so nothing is resampled. Measured, not assumed — see
+// DECISIONS.md #14.
 //
 // These also divide cleanly by the old tile grid (780/4 = 195, 420/3 = 140),
 // but with the reveal parked that no longer constrains anything — see

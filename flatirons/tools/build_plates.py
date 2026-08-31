@@ -22,6 +22,21 @@ import sys
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
+# The plate size. 780 matches the art area's width exactly.
+#
+# 420 is deliberately ~9px TALLER than the art area, which really measures
+# 410.9 — the framework over-allocates by one --gap and flex shrinks .layout
+# to absorb it. Do not "fix" this by setting H = 411:
+#
+#   - object-fit: cover picks max(780/780, 410.9/420) = exactly 1.0, so the
+#     plate is drawn pixel-for-pixel and ~4.6px is trimmed top and bottom.
+#     Nothing is resampled, which is the only thing that would hurt the
+#     dither.
+#   - 410.875 is fractional and only holds on the OG panel at --ui-scale 1.
+#     It moves on any other device. A plate that slightly overfills is the
+#     more robust of the two.
+#
+# See DECISIONS.md #14.
 W, H = 780, 420
 
 # Area averaging rather than bicubic. Bicubic sharpens as it shrinks, adding
