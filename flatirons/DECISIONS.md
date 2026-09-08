@@ -140,9 +140,14 @@ reviewed but are not wired up yet.
   pre-dithered. 1-bit and "black and white 1-bit" are both wrong for this
   plugin; a hard threshold makes the mountain vanish entirely, since every
   mid-grey collapses to white.
-- **The weather zone mask is approximate** — a feathered diagonal along the
-  treeline. A hand-traced three-zone mask (sky / massif / pasture) would
-  decouple sky from mountain, which currently move together.
+- ~~**The weather zone mask is approximate**~~ **DONE.** `masks/zones.png` is a
+  real three-zone mask — 780×420, exactly three values: sky (0) at 23% of the
+  frame, massif (128) at 45%, pasture (255) at 32%. It follows the ridgeline
+  and the treeline rather than being a feathered diagonal, and the three zones
+  now carry their own brightness and contrast in `TIMES`, so sky and mountain
+  no longer move together. The mask was derived from the photograph rather
+  than traced by hand, which is what makes "bring your own mountain" look
+  plausible rather than impossible.
 - **What happens between 21:00 and midnight**, once all twelve are revealed.
 - **Timezone is hardcoded to Denver**, as in `art-dashboard`.
 
